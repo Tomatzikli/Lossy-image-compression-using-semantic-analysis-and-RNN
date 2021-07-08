@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 
-from functions import Sign as SignFunction
+from RNN.functions import Sign as SignFunction
 
 
 class Sign(nn.Module):

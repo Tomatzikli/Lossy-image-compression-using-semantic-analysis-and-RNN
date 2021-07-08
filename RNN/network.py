@@ -1,14 +1,13 @@
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-
-from modules import ConvLSTMCell, Sign
+from RNN.modules import ConvLSTMCell, Sign
 
 
 class EncoderCell(nn.Module):
     def __init__(self):
         super(EncoderCell, self).__init__()
-
         self.conv = nn.Conv2d(
             3, 64, kernel_size=3, stride=2, padding=1, bias=False)
         self.rnn1 = ConvLSTMCell(
@@ -59,7 +58,7 @@ class Binarizer(nn.Module):
 
     def forward(self, input):
         feat = self.conv(input)
-        x = F.tanh(feat)
+        x = torch.tanh(feat)
         return self.sign(x)
 
 
@@ -104,6 +103,10 @@ class DecoderCell(nn.Module):
         self.conv2 = nn.Conv2d(
             32, 3, kernel_size=1, stride=1, padding=0, bias=False)
 
+        ###
+        #down size from 32x32 to 8x8
+        ###
+
     def forward(self, input, hidden1, hidden2, hidden3, hidden4):
         x = self.conv1(input)
 
@@ -123,5 +126,5 @@ class DecoderCell(nn.Module):
         x = hidden4[0]
         x = F.pixel_shuffle(x, 2)
 
-        x = F.tanh(self.conv2(x)) / 2
+        x = torch.tanh(self.conv2(x)) / 2
         return x, hidden1, hidden2, hidden3, hidden4

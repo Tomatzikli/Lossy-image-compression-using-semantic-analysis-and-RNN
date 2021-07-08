@@ -69,16 +69,16 @@ class ConvLSTMCell(ConvRNNCellBase):
 
     def forward(self, input, hidden):
         hx, cx = hidden
-        gates = self.conv_ih(input) + self.conv_hh(hx)
+        gates = self.conv_ih(input) + self.conv_hh(hx)  # same size??  W*x_t + U*h_t-1 +b
 
-        ingate, forgetgate, cellgate, outgate = gates.chunk(4, 1)
+        ingate, forgetgate, cellgate, outgate = gates.chunk(4, 1)   # split dim 1 to 4 pieces.
 
-        ingate = F.sigmoid(ingate)
-        forgetgate = F.sigmoid(forgetgate)
-        cellgate = F.tanh(cellgate)
-        outgate = F.sigmoid(outgate)
+        ingate = torch.sigmoid(ingate)
+        forgetgate = torch.sigmoid(forgetgate)
+        cellgate = torch.tanh(cellgate)
+        outgate = torch.sigmoid(outgate)
 
         cy = (forgetgate * cx) + (ingate * cellgate)
-        hy = outgate * F.tanh(cy)
+        hy = outgate * torch.tanh(cy)
 
         return hy, cy

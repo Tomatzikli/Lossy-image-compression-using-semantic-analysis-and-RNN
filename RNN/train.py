@@ -2,8 +2,6 @@ import time
 import os
 import argparse
 
-import numpy as np
-
 import torch
 import torch.optim as optim
 import torch.optim.lr_scheduler as LS
@@ -165,7 +163,7 @@ for epoch in range(last_epoch + 1, args.max_epochs + 1):
         batch_t1 = time.time()
 
         print(
-            '[TRAIN] Epoch[{}]({}/{}); Loss: {:.6f}; Backpropagation: {:.4f} sec; Batch: {:.4f} sec'.
+            '[TRAIN] Epoch[{}]({}/{}); L*oss: {:.6f}; Backpropagation: {:.4f} sec; Batch: {:.4f} sec'.
             format(epoch, batch + 1,
                    len(train_loader), loss.data[0], bp_t1 - bp_t0, batch_t1 -
                    batch_t0))
