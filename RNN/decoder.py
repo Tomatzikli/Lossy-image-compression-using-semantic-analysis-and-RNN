@@ -11,7 +11,7 @@ def resize(image, imsize):
     trans_size = transforms.Compose(transformer)
     return trans_size(image)
 
-def decode(num_rows, num_cols, patches, iterations, orig_size_0, orig_size_1,
+def decode(num_rows, num_cols, patches, iterations, output_path, size_orig_0, size_orig_1,
            model='checkpoint/decoder_epoch_00000025.pth', cuda=True):
     ssim_per_block = []
     result = torch.tensor([])
@@ -19,8 +19,8 @@ def decode(num_rows, num_cols, patches, iterations, orig_size_0, orig_size_1,
         for i in range(num_rows):
           row_tensor = torch.tensor([])
           for j in range(num_cols):
-            print("iteration {},{} out of ".format(i,j), num_rows," ",num_cols)
-            content = np.load("patch_{}_{}".format(i,j)+".npz")   # extract npz file
+            #print("decoder: block num {},{}".format(i, j))
+            content = np.load("patches/patch_{}_{}".format(i,j)+".npz")   # extract npz file
             codes = np.unpackbits(content['codes'])  # what we saved in the encoder, save as binary numbers.
             codes = np.reshape(codes, content['shape']).astype(np.float32) * 2 - 1
 
@@ -54,10 +54,6 @@ def decode(num_rows, num_cols, patches, iterations, orig_size_0, orig_size_1,
                           Variable(
                               torch.zeros(batch_size, 128, height // 2, width // 2)))
 
-            ##############
-            cuda = False
-            #############
-
             if cuda:
                 decoder = decoder.cuda()
 
@@ -86,7 +82,7 @@ def decode(num_rows, num_cols, patches, iterations, orig_size_0, orig_size_1,
           result = torch.cat((result, row_tensor), dim=1)
           # print("result after cat: ", result.shape)
 
-    imsize = (orig_size_0, orig_size_1)  # resize to original size in order to apply ssim
+    imsize = (size_orig_0, size_orig_1)  # resize to original size in order to apply ssim
     result = resize(result, imsize)
     new_image =  np.squeeze(result.numpy().clip(0, 1) * 255.0)
     new_image = new_image.astype(np.uint8).transpose(1, 2, 0)
@@ -94,5 +90,5 @@ def decode(num_rows, num_cols, patches, iterations, orig_size_0, orig_size_1,
     # from [1, 3, 32, 32] to [32, 32, 3]
     image = Image.fromarray(new_image)
 
-    image.save('checkpoint/watch-join.png')
+    image.save(output_path)
     return torch.tensor(ssim_per_block)

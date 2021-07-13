@@ -12,8 +12,8 @@ def imload_32(tensor):
   return torch.from_numpy(np.expand_dims(np.array(image).astype(np.float32), 0))
 
 
-def encode(patches, iterations, model='checkpoint/encoder_epoch_00000025.pth', cuda='-g'):
-    num_rows  = patches.shape[0]
+def encode(patches, iterations, model='checkpoint/encoder_epoch_00000025.pth', cuda=True):
+    num_rows = patches.shape[0]
     num_cols = patches.shape[1]
     for i in range(num_rows):
       for j in range(num_cols):
@@ -31,15 +31,10 @@ def encode(patches, iterations, model='checkpoint/encoder_epoch_00000025.pth', c
           binarizer.eval()
           decoder.eval()
 
-          encoder.load_state_dict(torch.load(model, map_location=torch.device('cpu')))
-          #encoder.load_state_dict(torch.load(model))
-          #binarizer.load_state_dict(torch.load(model.replace('encoder', 'binarizer')))
-          binarizer.load_state_dict(
-              torch.load(model.replace('encoder', 'binarizer'),map_location=torch.device('cpu')))
-          #decoder.load_state_dict(torch.load(model.replace('encoder', 'decoder')))
-          decoder.load_state_dict(torch.load(model.replace('encoder', 'decoder'), map_location=torch.device('cpu')))
+          encoder.load_state_dict(torch.load(model))
+          binarizer.load_state_dict(torch.load(model.replace('encoder', 'binarizer')))
+          decoder.load_state_dict(torch.load(model.replace('encoder', 'decoder')))
 
-          # h1-h3 is num of LSTM in the middle?
           encoder_h_1 = (Variable(
               torch.zeros(batch_size, 256, height // 4, width // 4)),
                         Variable(
@@ -70,10 +65,6 @@ def encode(patches, iterations, model='checkpoint/encoder_epoch_00000025.pth', c
                         Variable(
                             torch.zeros(batch_size, 128, height // 2, width // 2)))
 
-          ################
-          cuda = False
-          #############
-
           if cuda:
               encoder = encoder.cuda()
               binarizer = binarizer.cuda()
@@ -92,7 +83,7 @@ def encode(patches, iterations, model='checkpoint/encoder_epoch_00000025.pth', c
 
           codes = []
           res = image - 0.5   # ? why, what
-          for iters in range(iterations[i][j]):
+          for iters in range(max(iterations[i][j],1)):
               encoded, encoder_h_1, encoder_h_2, encoder_h_3 = encoder(
                   res, encoder_h_1, encoder_h_2, encoder_h_3)
 
@@ -103,10 +94,10 @@ def encode(patches, iterations, model='checkpoint/encoder_epoch_00000025.pth', c
 
               res = res - output   ## diff between original image and output?
               codes.append(code.data.cpu().numpy()) # what is this?
-              print('Iter: {:02d}; Loss: {:.06f}'.format(iters, res.data.abs().mean()))
+              ## print('Iter: {:02d}; Loss: {:.06f}'.format(iters, res.data.abs().mean()))
 
           codes = (np.stack(codes).astype(np.int8) + 1) // 2
           export = np.packbits(codes.reshape(-1))   # Packs the elements of a binary-valued array into bits in a uint8 array. 2048 -> 256
-          np.savez_compressed("patch_{}_{}".format(i,j), shape=codes.shape, codes=export)   # the last two is a dic
+          np.savez_compressed("patches/patch_{}_{}".format(i,j), shape=codes.shape, codes=export)   # the last two is a dic
 
     return num_rows, num_cols

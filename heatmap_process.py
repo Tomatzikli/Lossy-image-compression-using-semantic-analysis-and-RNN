@@ -4,13 +4,15 @@ from torchvision import transforms
 import numpy as np
 import math
 
-def image_to_patches(path):
-  transt = transforms.ToTensor()
-  img_t = transt(Image.open(path).convert("RGB"))
+def image_to_patches(image):
+  if isinstance(image, str):
+    transt = transforms.ToTensor()
+    image = transt(Image.open(image).convert("RGB"))
   #torch.Tensor.unfold(dimension, size, step)
   #slices the images into 8*8 size patches
-  patches = img_t.data.unfold(0, 3, 3).unfold(1, 8, 8).unfold(2, 8, 8)
-  return patches.squeeze(), img_t.shape[1], img_t.shape[2]
+  image = image.squeeze()
+  patches = image.data.unfold(0, 3, 3).unfold(1, 8, 8).unfold(2, 8, 8)
+  return patches.squeeze(), image.shape[1], image.shape[2]
 
 
 def imload_32(path):
