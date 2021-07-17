@@ -4,6 +4,8 @@ import torch
 from torch.autograd import Variable
 from torchvision import transforms
 from RNN.ssim import ssim
+import math
+import RNN.network as network
 
 def resize(image, imsize):
     transformer = []
@@ -11,16 +13,18 @@ def resize(image, imsize):
     trans_size = transforms.Compose(transformer)
     return trans_size(image)
 
-def decode(num_rows, num_cols, patches, iterations, output_path, size_orig_0, size_orig_1,
-           model='checkpoint/decoder_epoch_00000025.pth', cuda=True):
+def decode(patches_dataset, iterations, orig_size,
+           output_path, model='checkpoint/decoder_epoch_00000025.pth', cuda=True):
     ssim_per_block = []
     result = torch.tensor([])
+
+    num_rows, num_cols = math.floor(orig_size[0]/8.0), math.floor(orig_size[1]/8.0)
     with torch.no_grad():
         for i in range(num_rows):
           row_tensor = torch.tensor([])
           for j in range(num_cols):
             #print("decoder: block num {},{}".format(i, j))
-            content = np.load("patches/patch_{}_{}".format(i,j)+".npz")   # extract npz file
+            content = np.load("patches/patch_{}".format(i*num_cols+j)+".npz")   # extract npz file
             codes = np.unpackbits(content['codes'])  # what we saved in the encoder, save as binary numbers.
             codes = np.reshape(codes, content['shape']).astype(np.float32) * 2 - 1
 
@@ -31,7 +35,6 @@ def decode(num_rows, num_cols, patches, iterations, output_path, size_orig_0, si
 
             codes = Variable(codes)
 
-            import RNN.network as network
             decoder = network.DecoderCell()
             decoder.eval()
 
@@ -66,7 +69,7 @@ def decode(num_rows, num_cols, patches, iterations, output_path, size_orig_0, si
 
             image = torch.zeros(1, 3, height, width) + 0.5
 
-            for iters in range(min(iterations[i][j], codes.size(0))):
+            for iters in range(min(iterations[i*num_cols+j], codes.size(0))):
                 output, decoder_h_1, decoder_h_2, decoder_h_3, decoder_h_4 = decoder(
                     codes[iters], decoder_h_1, decoder_h_2, decoder_h_3, decoder_h_4)
                 image = image + output.data.cpu()
@@ -74,16 +77,16 @@ def decode(num_rows, num_cols, patches, iterations, output_path, size_orig_0, si
             # print("image size before cat: ", image.shape) 1,3,32,32
             row_tensor = torch.cat((row_tensor,image.squeeze()), dim=2)
             # print("rowtensor size after cat: ", row_tensor.shape)
+
             # add si-ssim computation per block:
-            m1 = patches[i][j].unsqueeze(0)
-            m2 = resize(image, (8,8))
-            ## זה print("sizes: ", m1.shape, m2.shape)
-            ssim_per_block.append(ssim(m1, m2))
+            orig_patch = patches_dataset.__getitem__(i*num_cols+j).unsqueeze(0)
+            ssim_per_block.append(ssim(orig_patch, image))
+
           result = torch.cat((result, row_tensor), dim=1)
           # print("result after cat: ", result.shape)
 
-    imsize = (size_orig_0, size_orig_1)  # resize to original size in order to apply ssim
-    result = resize(result, imsize)
+    # resize to original size in order to apply ssim
+    result = resize(result, orig_size)
     new_image =  np.squeeze(result.numpy().clip(0, 1) * 255.0)
     new_image = new_image.astype(np.uint8).transpose(1, 2, 0)
     # clip: values smaller than 0 become 0, and values larger than 1 become 1

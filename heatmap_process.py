@@ -4,17 +4,6 @@ from torchvision import transforms
 import numpy as np
 import math
 
-def image_to_patches(image):
-  if isinstance(image, str):
-    transt = transforms.ToTensor()
-    image = transt(Image.open(image).convert("RGB"))
-  #torch.Tensor.unfold(dimension, size, step)
-  #slices the images into 8*8 size patches
-  image = image.squeeze()
-  patches = image.data.unfold(0, 3, 3).unfold(1, 8, 8).unfold(2, 8, 8)
-  return patches.squeeze(), image.shape[1], image.shape[2]
-
-
 def imload_32(path):
     img = Image.open(path).convert("RGB")
     imsize = (32, 32)
@@ -45,7 +34,12 @@ This function recieves the tiles of the heatmap picture, and the mean number
 of iteration (Mean K, page 7 of article. No baseline value, )
 '''
 def calc_iterations(path, mean_k = 12):
-  heatmap_tiles,_,_ = image_to_patches(path)
+  transt = transforms.ToTensor()
+  image = transt(Image.open(path).convert("RGB"))
+  # torch.Tensor.unfold(dimension, size, step)
+  # slices the images into 8*8 size patches
+  image = image.squeeze()
+  heatmap_tiles = image.data.unfold(0, 3, 3).unfold(1, 8, 8).unfold(2, 8, 8).squeeze()
   num_rows = heatmap_tiles.shape[0]
   num_cols = heatmap_tiles.shape[1]
   n = num_rows * num_cols
@@ -88,4 +82,4 @@ def calc_iterations(path, mean_k = 12):
   # Distribute excess iterations
   for i in range(n):
     iters[i] += math.floor(semantic_lvls[i]*mean_k*excess)
-  return torch.tensor(iters).view(num_rows, num_cols), torch.tensor(semantic_lvls)
+  return torch.tensor(iters), torch.tensor(semantic_lvls)

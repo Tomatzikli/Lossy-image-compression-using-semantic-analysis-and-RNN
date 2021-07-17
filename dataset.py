@@ -7,6 +7,7 @@ import torch
 from torchvision import transforms
 import torch.utils.data as data
 from PIL import Image
+import numpy as np
 
 IMG_EXTENSIONS = [
     '.jpg',
@@ -57,3 +58,28 @@ class ImageFolder(data.Dataset):
 
     def __len__(self):
         return len(self.imgs)
+
+class Patches(data.Dataset):
+    """ divide image to patches."""
+
+    def __init__(self, image, transform=None, loader=default_loader):
+        if isinstance(image, str):
+            transt = transforms.ToTensor()
+            image = transt(Image.open(image).convert("RGB"))
+        # torch.Tensor.unfold(dimension, size, step)
+        # slices the images into 8*8 size patches
+        image = image.squeeze()
+        patches = image.data.unfold(0, 3, 3).unfold(1, 8, 8).unfold(2, 8, 8).squeeze()
+        self.transform = transform
+        self.patches = patches.reshape(patches.shape[0] * patches.shape[1], 3, 8, 8)
+        # print("in dataset.py patches.shape ", self.patches.shape)
+
+        self.transform = transform
+        self.loader = loader
+
+    def __getitem__(self, index):
+        return self.transform(self.patches[index])
+        #return torch.from_numpy(np.expand_dims(np.array(img).astype(np.float32), 0))
+
+    def __len__(self):
+        return self.patches.shape[0]

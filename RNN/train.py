@@ -1,6 +1,12 @@
+""" 
+train.py
+"""
+
 import time
 import os
 import argparse
+
+import numpy as np
 
 import torch
 import torch.optim as optim
@@ -10,33 +16,57 @@ import torch.nn.functional as F
 from torch.autograd import Variable
 import torch.utils.data as data
 from torchvision import transforms
+import torchvision
+from torchvision.datasets import CIFAR100
 
 parser = argparse.ArgumentParser()
+#parser.add_argument('--batch-size', '-N', type=int, default=32, help='batch size')
+parser.add_argument('--batch-size', '-N', type=int, default=64, help='batch size')
+#parser.add_argument( '--train', '-f', required=True, type=str, help='folder of training images')
+parser.add_argument( '--train', '-f',  type=str, help='folder of training images', default='/content/cifar-10-batches-py')
+
+
+
 parser.add_argument(
-    '--batch-size', '-N', type=int, default=32, help='batch size')
-parser.add_argument(
-    '--train', '-f', required=True, type=str, help='folder of training images')
-parser.add_argument(
-    '--max-epochs', '-e', type=int, default=200, help='max epochs')
+    '--max-epochs', '-e', type=int, default=50, help='max epochs')   # default=200
 parser.add_argument('--lr', type=float, default=0.0005, help='learning rate')
 # parser.add_argument('--cuda', '-g', action='store_true', help='enables cuda')
 parser.add_argument(
     '--iterations', type=int, default=16, help='unroll iterations')
 parser.add_argument('--checkpoint', type=int, help='unroll iterations')
-args = parser.parse_args()
+args = parser.parse_args("")
 
 ## load 32x32 patches from images
-import dataset
+#import dataset
 
 train_transform = transforms.Compose([
     transforms.RandomCrop((32, 32)),
     transforms.ToTensor(),
 ])
 
-train_set = dataset.ImageFolder(root=args.train, transform=train_transform)
+# stats = ((0.5074,0.4867,0.4411),(0.2011,0.1987,0.2025))
+# train_transform = tt.Compose([
+#     tt.RandomHorizontalFlip(),
+#     tt.RandomCrop(32,padding=4,padding_mode="reflect"),
+#     tt.ToTensor(),
+#     tt.Normalize(*stats)
+# ])
+
+# test_transform = tt.Compose([
+#     tt.ToTensor(),
+#     tt.Normalize(*stats)
+# ])
+
+
+#train_set = dataset.ImageFolder(root=args.train, transform=train_transform)
+#train_set = torchvision.datasets.CIFAR10(root='../data', train=True, download=True, transform=train_transform)
+
+train_set = CIFAR100(download=True,root="./data",transform=train_transform)
+#test_set = CIFAR100(root="./data",train=False,transform=test_transform)
 
 train_loader = data.DataLoader(
-    dataset=train_set, batch_size=args.batch_size, shuffle=True, num_workers=1)
+    dataset=train_set, batch_size=args.batch_size, shuffle=True, pin_memory=True, num_workers=4)  # 1?
+#test_dl = DataLoader(dataset=test_set,batch_size=args.batch_size, ,num_workers=4,pin_memory=True)
 
 print('total images: {}; total batches: {}'.format(
     len(train_set), len(train_loader)))
@@ -51,7 +81,7 @@ decoder = network.DecoderCell().cuda()
 solver = optim.Adam(
     [
         {
-            'params': encoder.parameters()
+            'params': encoder.parameters()  ## generator of parameters?
         },
         {
             'params': binarizer.parameters()
@@ -99,23 +129,24 @@ def save(index, epoch=True):
 
 # resume()
 
-scheduler = LS.MultiStepLR(solver, milestones=[3, 10, 20, 50, 100], gamma=0.5)
+scheduler = LS.MultiStepLR(solver, milestones=[3, 10, 20, 50, 100], gamma=0.5)   # https://www.programmersought.com/article/35594904715/
 
 last_epoch = 0
 if args.checkpoint:
     resume(args.checkpoint)
-    last_epoch = args.checkpoint
+    last_epoch = args.checkpoint   
     scheduler.last_epoch = last_epoch - 1
 
 for epoch in range(last_epoch + 1, args.max_epochs + 1):
-
-    scheduler.step()
-
-    for batch, data in enumerate(train_loader):
+    print("epoch {}".format(epoch))
+    for batch, data_pair in enumerate(train_loader):
+        data = data_pair[0]   # I added#
         batch_t0 = time.time()
+        ##print( "len data: ",len(data), " 0: ", data[0].shape," 1: ", data[1].shape) ### me
+        # conclusion - data[0].size: [32,3,32,32], data[1].size: [32] lables?
 
         ## init lstm state
-        encoder_h_1 = (Variable(torch.zeros(data.size(0), 256, 8, 8).cuda()),
+        encoder_h_1 = (Variable(torch.zeros(data.size(0), 256, 8, 8).cuda()), 
                        Variable(torch.zeros(data.size(0), 256, 8, 8).cuda()))
         encoder_h_2 = (Variable(torch.zeros(data.size(0), 512, 4, 4).cuda()),
                        Variable(torch.zeros(data.size(0), 512, 4, 4).cuda()))
@@ -159,17 +190,17 @@ for epoch in range(last_epoch + 1, args.max_epochs + 1):
         loss.backward()
 
         solver.step()
+        scheduler.step()
 
         batch_t1 = time.time()
 
-        print(
-            '[TRAIN] Epoch[{}]({}/{}); L*oss: {:.6f}; Backpropagation: {:.4f} sec; Batch: {:.4f} sec'.
-            format(epoch, batch + 1,
-                   len(train_loader), loss.data[0], bp_t1 - bp_t0, batch_t1 -
-                   batch_t0))
-        print(('{:.4f} ' * args.iterations +
-               '\n').format(* [l.data[0] for l in losses]))
-
+        #print(
+           # '[TRAIN] Epoch[{}]({}/{}); Loss: {:.6f}; Backpropagation: {:.4f} sec; Batch: {:.4f} sec'.
+            #format(epoch, batch + 1,
+                   #len(train_loader), loss.data[0], bp_t1 - bp_t0, batch_t1 -batch_t0))
+         #          len(train_loader), loss.data, bp_t1 - bp_t0, batch_t1 -batch_t0))
+        #print(('{:.4f} ' * args.iterations +'\n').format(* [l.data[0] for l in losses]))
+        #print(('{:.4f} ' * args.iterations +'\n').format(* [l.data for l in losses]))
         index = (epoch - 1) * len(train_loader) + batch
 
         ## save checkpoint every 500 training steps

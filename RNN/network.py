@@ -3,9 +3,11 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from RNN.modules import ConvLSTMCell, Sign
+import pytorch_lightning as pl
 
 
 class EncoderCell(nn.Module):
+#class EncoderCell(pl.LightningModule):
     def __init__(self):
         super(EncoderCell, self).__init__()
         self.conv = nn.Conv2d(
@@ -51,6 +53,7 @@ class EncoderCell(nn.Module):
 
 
 class Binarizer(nn.Module):
+#class Binarizer(pl.LightningModule):
     def __init__(self):
         super(Binarizer, self).__init__()
         self.conv = nn.Conv2d(512, 32, kernel_size=1, bias=False)
@@ -63,6 +66,7 @@ class Binarizer(nn.Module):
 
 
 class DecoderCell(nn.Module):
+#class DecoderCell(pl.LightningModule):
     def __init__(self):
         super(DecoderCell, self).__init__()
 
