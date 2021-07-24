@@ -1,7 +1,7 @@
 import numpy as np
 from test import test
 import pandas as pd
-
+import openpyxl
 
 def compression_allocation(cam):
         arr = cam* 255.0 / cam.max()  # gray_scale
@@ -23,25 +23,33 @@ def compression_allocation(cam):
         # divide E
         # return num iterations for each block as a list
 
-def save_results(sissim_results, msssim_results, index_names, output_name):
+def save_results(sissim_results, msssim_results, experiments, output_name):
         df = pd.DataFrame()
-        df["sissim"] = sissim_results
-        df["msssim"] = msssim_results
-        df.index = index_names
+        index = []
+        for i in range(len(experiments)):
+                name_col = "sissim_{}".format(experiments[i])
+                sissim_results[i] += [sum(sissim_results[i])/len(sissim_results[i])]
+                df[name_col] = sissim_results[i]
+                name_col = "msssim_{}".format(experiments[i])
+                msssim_results[i] += [sum(msssim_results[i])/len(msssim_results[i])]
+                df[name_col] = msssim_results[i]
+
+        df.index = list(range(len(sissim_results[0])-1)) + ["avg"] # num of images processed
+        print(df)
         df.to_excel(output_name +'.xlsx')
 
 
 if __name__ == '__main__':
         sissim_all = []
         msssim_all = []
-        experiments = ['resnet50', 'resnext50_32x4d', 'wide_resnet50_2', 'googlenet',
-                       'densenet161', 'inception_v3', 'shufflenet_v2_x1_0', 'mnasnet1_0', 'mobilenet_v2']
+        experiments = [4]  # mean k
         for item in experiments:
-                # TODO: insert item as parameter to test()
-                sissim, msssim = test(directory_path='kodak', output_directory_path='kodak_test_results')
+                sissim, msssim = test(directory_path='kodak', output_directory_path='kodak_test_results', item = item)
                 print("sissim result: ", sissim)
                 print("msssim result: ", msssim)
                 sissim_all.append(sissim)
                 msssim_all.append(msssim)
-        output_name = 'expirement_networks_semantic_segmentation'
+
+
+        output_name = 'trained_semantic_k4'
         save_results(sissim_all, msssim_all, experiments, output_name)

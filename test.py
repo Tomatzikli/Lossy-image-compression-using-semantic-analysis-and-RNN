@@ -1,7 +1,7 @@
 import numpy as np
 import torch
 from heatmap_process import calc_iterations
-from Semantic_analysis import cam
+from Semantic_analysis_trained import cam
 from RNN import encoder, decoder
 from RNN import metric
 from torchvision import transforms
@@ -11,9 +11,9 @@ from torch.utils.data import DataLoader
 from tqdm import tqdm
 
 
-def test_image(image_t, output_path, num_batch):
+def test_image(image_t, output_path, num_batch, item):
     cam_output_path = cam.getCam(image_t, gpu=True)
-    iterations, semantic_level_per_block = calc_iterations(cam_output_path)
+    iterations, semantic_level_per_block = calc_iterations(cam_output_path, mean_k=item)
     patches_data_loader = encoder.encode(image_t, iterations)
     ssim_per_block = decoder.decode(patches_data_loader.dataset, orig_size=(image_t.shape[2], image_t.shape[3]),
                                     iterations=iterations, output_path=output_path)
@@ -25,20 +25,23 @@ def test_image(image_t, output_path, num_batch):
     print("ms-ssim in batch {}: ".format(num_batch), msssim)
     return sissim, msssim
 
-def test(directory_path, output_directory_path):
+def test(directory_path, output_directory_path, item):
     print("cude available? ", torch.cuda.is_available())
-    directory_size = 24.0 # os.path.getsize(directory_path)
     test_set = dataset.ImageFolder(root=directory_path, transform=transforms.ToTensor())
     test_loader = DataLoader(dataset=test_set, batch_size=1, num_workers=4)
-    sissim_total = 0
-    msssim_total = 0
+    sissim_list = []
+    msssim_list = []
+    cnt = 0
 
     for batch, data in tqdm(enumerate(test_loader)):
-        filename = "kodak_{}.jpg".format(batch)
+        filename = "kodak_{}_k{}.jpg".format(batch, item)
         output_path = os.path.join(output_directory_path, filename)
         print(output_path)
-        sissim, msssim = test_image(data, output_path, batch)
-        sissim_total += sissim
-        msssim_total += msssim
+        sissim, msssim = test_image(data, output_path, batch, item)
+        sissim_list.append(sissim)
+        msssim_list.append(msssim)
+        cnt += 1
+        if cnt == 8:
+            break
 
-    return sissim_total/directory_size, msssim_total/directory_size
+    return sissim_list, msssim_list
