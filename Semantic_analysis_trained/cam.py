@@ -17,14 +17,13 @@ def getCam(image: torch.tensor, network='resnet50', gpu=True, topk=1, blend_alph
     idx_to_label = {int(key): value[1] for key, value in idx_to_label.items()}  # class index : class name
 
     # set device
-    device = torch.device('cuda' if gpu >= 0 else 'cpu')
+    device = torch.device('cuda:%d'%gpu if gpu else 'cpu')
 
     # -------------------------------------
-    model = MResnet(3, 100)
+    model = MResnet(3, 100).to(device)
     model.load_state_dict(torch.load("Semantic_analysis_trained/cifar100-resnet.pth"))
-    print(device)
-    if device == 'cuda':
-        model = model.cuda()
+    model = model.to(device)
+
     # print(model)
     # net_list = list(model.children())
     # print(net_list[-1][-1])
@@ -32,10 +31,9 @@ def getCam(image: torch.tensor, network='resnet50', gpu=True, topk=1, blend_alph
 
     # network = CAM(network).to(device)
     network = CAM(model).to(device)
-    network.eval()  # turn spesific layers off
-    image = imload_tensor(image).to(device)
-    # image = imload_8(image).to(device)
-    print(image.shape)
+    network.eval()  # turn specific layers off
+    image = imload_tensor(image)
+    image = image.to(device)
 
     # make class activation map
     with torch.no_grad():
