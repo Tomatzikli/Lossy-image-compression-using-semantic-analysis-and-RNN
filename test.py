@@ -13,10 +13,12 @@ from tqdm import tqdm
 
 def test_image(image_t, output_path, num_batch, item):
     cam_output_path = cam.getCam(image_t, gpu=True)
-    iterations, semantic_level_per_block = calc_iterations(cam_output_path, mean_k=item)
-    patches_data_loader = encoder.encode(image_t, iterations)
-    ssim_per_block = decoder.decode(patches_data_loader.dataset, orig_size=(image_t.shape[2], image_t.shape[3]),
-                                    iterations=iterations, output_path=output_path)
+    batches, semantic_level_per_block = calc_iterations(cam_output_path,
+                                                        mean_k=item)
+    patches_data_loader = encoder.encode(batches)
+    ssim_per_block = decoder.decode(patches_data_loader.dataset, orig_size=(
+    image_t.shape[2], image_t.shape[3]),
+                                    output_path=output_path)
     sissim_vector = ssim_per_block * semantic_level_per_block
     sissim = torch.sum(sissim_vector).item()
     print("si-ssim in batch {}: ".format(num_batch), sissim)
@@ -25,9 +27,11 @@ def test_image(image_t, output_path, num_batch, item):
     print("ms-ssim in batch {}: ".format(num_batch), msssim)
     return sissim, msssim
 
+
 def test(directory_path, output_directory_path, item):
     print("cude available? ", torch.cuda.is_available())
-    test_set = dataset.ImageFolder(root=directory_path, transform=transforms.ToTensor())
+    test_set = dataset.ImageFolder(root=directory_path,
+                                   transform=transforms.ToTensor())
     test_loader = DataLoader(dataset=test_set, batch_size=1, num_workers=4)
     sissim_list = []
     msssim_list = []

@@ -3,6 +3,8 @@ import torch
 from torchvision import transforms
 import numpy as np
 import math
+from dataset import BatchDivision
+
 
 def imload_32(path):
     img = Image.open(path).convert("RGB")
@@ -27,6 +29,7 @@ def imload_resize_mod8(path):
     t1 = transforms.Compose(transformer)
     new_im = t1(img)  # .unsqueeze(0)
     return new_im, new_size_0, new_size_1
+
 
 
 '''
@@ -82,4 +85,8 @@ def calc_iterations(path, mean_k = 12):
   # Distribute excess iterations
   for i in range(n):
     iters[i] += math.floor(semantic_lvls[i]*mean_k*excess)
-  return torch.tensor(iters), torch.tensor(semantic_lvls)
+    # Each tile must be passed at least once
+    if iters[i] == 0:
+        iters[i] = 1
+  batches = BatchDivision(heatmap_tiles, iters)
+  return batches, torch.tensor(semantic_lvls)

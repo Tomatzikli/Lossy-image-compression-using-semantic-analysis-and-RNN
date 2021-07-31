@@ -3,6 +3,10 @@ from test import test
 import pandas as pd
 import openpyxl
 
+BATCH_SIZE = 8
+MAX_ITERATIONS = 24
+
+
 def compression_allocation(cam):
         arr = cam* 255.0 / cam.max()  # gray_scale
         k = 8
