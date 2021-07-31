@@ -8,7 +8,8 @@ from torch.utils.data import DataLoader
 from torchvision import transforms
 import torch.utils.data as data
 from PIL import Image
-import main
+from global_vars import BATCH_SIZE
+from global_vars import MAX_ITERATIONS
 import numpy as np
 
 IMG_EXTENSIONS = [
@@ -23,6 +24,13 @@ IMG_EXTENSIONS = [
     '.bmp',
     '.BMP',
 ]
+
+
+def transformer_32():
+    imsize = (32, 32)
+    transformer = []
+    transformer.append(transforms.Resize(imsize))
+    return transforms.Compose(transformer)
 
 
 def is_image_file(filename):
@@ -63,42 +71,51 @@ class ImageFolder(data.Dataset):
 
 
 class BatchDivision():
-    def __init__(self, patches, iterations):
-
+    def __init__(self, image, iterations):
+        image = image.squeeze()
+        patches = image.data.unfold(0, 3, 3).unfold(1, 8, 8).unfold(2, 8,8).squeeze()
         patch_by_iters = {}
         location_by_iters = {}
         self.patch_location = []
-        batch_patches = []
+        batch_patches = torch.tensor([])
         self.batch_locations = []
         self.batch_iterations = []
         self.leftover_iterations = []
-        leftover_patches = []
+        leftover_patches = torch.tensor([])
         num_rows = patches.shape[0]
         num_cols = patches.shape[1]
         for i in range(num_rows):
             for j in range(num_cols):
-                patch_iters = iterations[i * self.num_cols + j]
-                if patch_by_iters[patch_iters] == None:
+                patch_iters = iterations[i * num_cols + j]
+                if patch_iters not in patch_by_iters:
                     location_by_iters[patch_iters] = []
-                    patch_by_iters[patch_iters] = []
-                patch_by_iters[patch_iters].add(patches[i][j])
-                location_by_iters[patch_iters].add(i * num_cols + j)
-        for i in range(0, main.MAX_ITERATIONS):
-            if patch_by_iters[i] != None:
-                self.batch_patches.add(patch_by_iters[i])
-                self.patch_location.add(location_by_iters[i])
+                    patch_by_iters[patch_iters] = torch.tensor([])
+                patch_by_iters[patch_iters] = torch.cat((patch_by_iters[patch_iters], patches[i][j].unsqueeze(0)), dim=0)
+                location_by_iters[patch_iters].append(i * num_cols + j)
+        for i in range(0, MAX_ITERATIONS):
+            if i in patch_by_iters:
+                batch_patches = torch.cat((batch_patches, patch_by_iters[i]), dim=0)
+                self.patch_location += location_by_iters[i]
                 for _ in range(len(patch_by_iters[i])):
-                    self.batch_iterations.add(i)
+                    self.batch_iterations.append(i)
 
-        leftover_index = len(batch_patches) % main.BATCH_SIZE
-        leftover_patches = batch_patches[-leftover_index:]
-        self.leftover_dataset = Patches(leftover_patches)
-        self.leftover_iterations = self.batch_iterations[-leftover_index:]
-        self.batch_iterations = self.batch_iterations[:-leftover_index]
-        batch_patches = batch_patches[:-leftover_index]
-        self.batch_dataset = Patches(batch_patches)
+        self.patch_location = torch.tensor(self.patch_location)
+        leftover_index = len(batch_patches) % BATCH_SIZE
+        if leftover_index != 0:
+            leftover_patches = batch_patches[-leftover_index:]
+            self.leftover_dataset = Patches(leftover_patches, transform=transformer_32())
+            self.leftover_iterations = self.batch_iterations[-leftover_index:]
+            self.batch_iterations = self.batch_iterations[:-leftover_index]
+            batch_patches = batch_patches[:-leftover_index]
+            self.batch_dataset = Patches(batch_patches, transform=transformer_32())
+        else:
+            self.leftover_dataset = Patches(leftover_patches,
+                                            transform=transformer_32())
+            self.batch_dataset = Patches(batch_patches,
+                                         transform=transformer_32())
+        print("batch_dataset size = {} , BATCH_SIZE = {}".format(self.batch_dataset.__len__(), BATCH_SIZE))
         self.batches_data_loader = DataLoader(dataset=self.batch_dataset,
-                                              batch_size=main.BATCH_SIZE,
+                                              batch_size=BATCH_SIZE,
                                               num_workers=4,
                                               pin_memory=True)
         self.leftover_data_loader = DataLoader(dataset=self.leftover_dataset,
@@ -111,6 +128,7 @@ class Patches(data.Dataset):
 
     def __init__(self, image, transform=None, loader=default_loader):
         self.patches = image
+        print("{}".format(self.patches.size()))
         # print("in dataset.py patches.shape ", self.patches.shape)
 
         self.transform = transform

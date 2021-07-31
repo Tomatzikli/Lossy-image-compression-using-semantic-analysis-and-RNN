@@ -3,7 +3,6 @@ import torch
 from torchvision import transforms
 import numpy as np
 import math
-from dataset import BatchDivision
 
 
 def imload_32(path):
@@ -36,7 +35,7 @@ def imload_resize_mod8(path):
 This function recieves the tiles of the heatmap picture, and the mean number
 of iteration (Mean K, page 7 of article. No baseline value, )
 '''
-def calc_iterations(path, mean_k = 12):
+def calc_iterations(image_t, path, mean_k = 12):
   transt = transforms.ToTensor()
   image = transt(Image.open(path).convert("RGB"))
   # torch.Tensor.unfold(dimension, size, step)
@@ -88,5 +87,5 @@ def calc_iterations(path, mean_k = 12):
     # Each tile must be passed at least once
     if iters[i] == 0:
         iters[i] = 1
-  batches = BatchDivision(heatmap_tiles, iters)
-  return batches, torch.tensor(semantic_lvls)
+  #batches = BatchDivision(heatmap_tiles, iters)
+  return iters, torch.tensor(semantic_lvls)

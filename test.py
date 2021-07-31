@@ -9,14 +9,20 @@ import os
 import dataset
 from torch.utils.data import DataLoader
 from tqdm import tqdm
+from dataset import BatchDivision
 
+BATCH_SIZE = 8
+MAX_ITERATIONS = 24
 
 def test_image(image_t, output_path, num_batch, item):
     cam_output_path = cam.getCam(image_t, gpu=True)
-    batches, semantic_level_per_block = calc_iterations(cam_output_path,
+    iterations, semantic_level_per_block = calc_iterations(image_t, cam_output_path,
                                                         mean_k=item)
-    patches_data_loader = encoder.encode(batches)
-    ssim_per_block = decoder.decode(patches_data_loader.dataset, orig_size=(
+    batches = BatchDivision(image_t, iterations)
+    print("encoding")
+    #encoder.encode(batches)
+    print("decoding")
+    ssim_per_block = decoder.decode(batches , orig_size=(
     image_t.shape[2], image_t.shape[3]),
                                     output_path=output_path)
     sissim_vector = ssim_per_block * semantic_level_per_block

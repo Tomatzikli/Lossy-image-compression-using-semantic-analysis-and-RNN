@@ -5,8 +5,8 @@ from torchvision import transforms
 from dataset import Patches
 from dataset import BatchDivision
 from torch.utils.data import DataLoader
-import main
-
+from global_vars import BATCH_SIZE
+from global_vars import MAX_ITERATIONS
 
 def imload_32(tensor):
     imsize = (32, 32)
@@ -112,9 +112,10 @@ def encode(batches, model='checkpoint/encoder_epoch_00000025.pth',
                 res = image - 0.5  # ? why, what
                 iters = 0
                 if i ==1:
-                    iters = max(batches.batch_iteration[batch*main.BATCH_SIZE:batch*(main.BATCH_SIZE+1)])
-                else:
-                    iters = batches.leftover_iteration[batch]
+                    #print("batch = {} , batch_size = {}".format(batch, batch_size))
+                    iters = max(batches.batch_iterations[batch*batch_size:(batch+1)*(batch_size)])
+                elif batches.leftover_iterations!= []:
+                    iters = batches.leftover_iterations[batch]
                 for _ in range(iters):
                     encoded, encoder_h_1, encoder_h_2, encoder_h_3 = encoder(
                         res, encoder_h_1, encoder_h_2, encoder_h_3)
@@ -135,6 +136,5 @@ def encode(batches, model='checkpoint/encoder_epoch_00000025.pth',
                 np.savez_compressed("patches/batch_{}_{}".format(i, batch),
                                     shape=codes.shape,
                                     codes=export)  # the last two is a dic
-            i += 1
+        i += 1
 
-    return patches_data_loader

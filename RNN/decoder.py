@@ -4,11 +4,11 @@ import torch
 from torch.autograd import Variable
 from torchvision import transforms
 
-import main
 from RNN.ssim import ssim
 import math
 import RNN.network as network
-
+from global_vars import BATCH_SIZE
+from global_vars import MAX_ITERATIONS
 
 def resize(image, imsize):
     transformer = []
@@ -27,16 +27,17 @@ def decode(batches, orig_size,
         orig_size[1] / 8.0)
     with torch.no_grad():
         for patches_dataset in datasets:
-            i = 0
+            i = 1
             batch_size = 1
-            if i == 0:
-                batch_size = main.BATCH_SIZE
+            if i == 1:
+                batch_size = BATCH_SIZE
             else:
                 batch_size = 1
             row_tensor = torch.tensor([])
-            for j in range((patches_dataset.__len__() / batch_size):
+            for j in range(patches_dataset.__len__() // batch_size):
                 # print("decoder: block num {},{}".format(i, j))
-                content = np.load("patches/batch_{}_{}".format(i, j)) + ".npz")  # extract npz file
+                #print("batch = {} , batch_size = {}".format(j, batch_size))
+                content = np.load("patches/batch_{}_{}".format(i, j) + ".npz")  # extract npz file
                 codes = np.unpackbits(content[
                                           'codes'])  # what we saved in the encoder, save as binary numbers.
                 codes = np.reshape(codes, content['shape']).astype(
@@ -99,15 +100,17 @@ def decode(batches, orig_size,
                 # print("rowtensor size after cat: ", row_tensor.shape)
 
                 # add si-ssim computation per block:
-                for k in batch_size:
+                for k in range(batch_size):
                     orig_patch = patches_dataset.__getitem__(
                         j * batch_size + k).unsqueeze(0)
-                    ssim_per_block.append(ssim(orig_patch, image[k]))
+                    ssim_per_block.append(ssim(orig_patch, image[k].unsqueeze(0)))
 
-
+    ssim_per_block = torch.tensor(ssim_per_block)
     patch_location = batches.patch_location
-    result = torch.gather(result ,0, torch.argsort(patch_location))
-    ssim_per_block = torch.gather(ssim_per_block ,0, torch.argsort(patch_location))
+    #print("result size = {}, locsize ={}".format(result.size(),patch_location.size()))
+    result = result[torch.argsort(patch_location)]
+    ssim_per_block = ssim_per_block[torch.argsort(patch_location)]
+
     # resize to original size in order to apply ssim
     result = resize(result, orig_size)
     new_image = np.squeeze(result.numpy().clip(0, 1) * 255.0)
