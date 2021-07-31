@@ -108,16 +108,23 @@ def decode(batches, orig_size,
     ssim_per_block = torch.tensor(ssim_per_block)
     patch_location = batches.patch_location
     #print("result size = {}, locsize ={}".format(result.size(),patch_location.size()))
+    print("1")
     result = result[torch.argsort(patch_location)]
+    print("2")
     ssim_per_block = ssim_per_block[torch.argsort(patch_location)]
+    print("3")
 
     # resize to original size in order to apply ssim
     result = resize(result, orig_size)
+    print("4")
     new_image = np.squeeze(result.numpy().clip(0, 1) * 255.0)
+    print("5")
     new_image = new_image.astype(np.uint8).transpose(1, 2, 0)
+    print("6")
     # clip: values smaller than 0 become 0, and values larger than 1 become 1
     # from [1, 3, 32, 32] to [32, 32, 3]
     image = Image.fromarray(new_image)
-
+    print("7")
     image.save(output_path)
+    print("8")
     return torch.tensor(ssim_per_block)
