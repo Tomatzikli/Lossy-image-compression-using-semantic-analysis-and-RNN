@@ -10,90 +10,83 @@ from torchvision.utils import make_grid
 from torch.utils.data.dataloader import DataLoader
 from torch.utils.data import random_split,ConcatDataset
 
-# def load_data():
-# stats = ((0.5074,0.4867,0.4411),(0.2011,0.1987,0.2025))
-# train_transform = tt.Compose([
-#     tt.RandomHorizontalFlip(),
-#     tt.RandomCrop(32,padding=4,padding_mode="reflect"),
-#     tt.ToTensor(),
-#     tt.Normalize(*stats)
-# ])
-#
-# test_transform = tt.Compose([
-#     tt.ToTensor(),
-#     tt.Normalize(*stats)
-# ])
-#
-# train_data = CIFAR100(download=True,root="./data",transform=train_transform)
-# test_data = CIFAR100(root="./data",train=False,transform=test_transform)
-#
-# train_classes_items = dict()
-#
-# for train_item in train_data:
-#     label = train_data.classes[train_item[1]]
-#     if label not in train_classes_items:
-#         train_classes_items[label] = 1
-#     else:
-#         train_classes_items[label] += 1
-#
-#
-# test_classes_items = dict()
-# for test_item in test_data:
-#     label = test_data.classes[test_item[1]]
-#     if label not in test_classes_items:
-#         test_classes_items[label] = 1
-#     else:
-#         test_classes_items[label] += 1
-#
-# BATCH_SIZE=128
-# train_dl = DataLoader(train_data,BATCH_SIZE,num_workers=4,pin_memory=True,shuffle=True)
-# test_dl = DataLoader(test_data,BATCH_SIZE,num_workers=4,pin_memory=True)
-#
-# def show_batch(dl):
-#     for batch in dl:
-#         images,labels = batch
-#         fig, ax = plt.subplots(figsize=(7.5,7.5))
-#         ax.set_yticks([])
-#         ax.set_xticks([])
-#         ax.imshow(make_grid(images[:20],nrow=5).permute(1,2,0))
-#         break
-#
-#
-# def get_device():
-#     if torch.cuda.is_available():
-#         return torch.device("cuda")
-#     return torch.device("cpu")
-#
-#
-# def to_device(data, device):
-#     if isinstance(data, (list, tuple)):
-#         return [to_device(x, device) for x in data]
-#     return data.to(device, non_blocking=True)
-#
-#
-# class ToDeviceLoader:
-#     def __init__(self, data, device):
-#         self.data = data
-#         self.device = device
-#
-#     def __iter__(self):
-#         for batch in self.data:
-#             yield to_device(batch, self.device)
-#
-#     def __len__(self):
-#         return len(self.data)
-#
-#
-# device = get_device()
-# print(device)
-#
-# train_dl = ToDeviceLoader(train_dl,device)
-# test_dl = ToDeviceLoader(test_dl,device)
-#
-#
-# def accuracy(predicted, actual):
-#     _, predictions = torch.max(predicted, dim=1)
-#     return torch.tensor(torch.sum(predictions == actual).item() / len(predictions))
+def load_data():
+    stats = ((0.5074,0.4867,0.4411),(0.2011,0.1987,0.2025))
+    train_transform = tt.Compose([
+    tt.RandomHorizontalFlip(),
+    tt.RandomCrop(32,padding=4,padding_mode="reflect"),
+    tt.ToTensor(),
+    tt.Normalize(*stats)
+    ])
+
+    test_transform = tt.Compose([
+    tt.ToTensor(),
+    tt.Normalize(*stats)
+    ])
+
+    train_data = CIFAR100(download=True,root="./data",transform=train_transform)
+    test_data = CIFAR100(root="./data",train=False,transform=test_transform)
+
+    train_classes_items = dict()
+
+    for train_item in train_data:
+        label = train_data.classes[train_item[1]]
+        if label not in train_classes_items:
+            train_classes_items[label] = 1
+        else:
+            train_classes_items[label] += 1
+
+    test_classes_items = dict()
+    for test_item in test_data:
+        label = test_data.classes[test_item[1]]
+        if label not in test_classes_items:
+            test_classes_items[label] = 1
+        else:
+            test_classes_items[label] += 1
+
+    BATCH_SIZE=128
+    train_dl = DataLoader(train_data,BATCH_SIZE,num_workers=4,pin_memory=True,shuffle=True)
+    test_dl = DataLoader(test_data,BATCH_SIZE,num_workers=4,pin_memory=True)
+    return train_dl, test_dl
+
+
+def show_batch(dl):
+    for batch in dl:
+        images,labels = batch
+        fig, ax = plt.subplots(figsize=(7.5,7.5))
+        ax.set_yticks([])
+        ax.set_xticks([])
+        ax.imshow(make_grid(images[:20],nrow=5).permute(1,2,0))
+        break
+
+
+def get_device():
+    if torch.cuda.is_available():
+        return torch.device("cuda")
+    return torch.device("cpu")
+
+
+def to_device(data, device):
+    if isinstance(data, (list, tuple)):
+        return [to_device(x, device) for x in data]
+    return data.to(device, non_blocking=True)
+
+
+class ToDeviceLoader:
+    def __init__(self, data, device):
+        self.data = data
+        self.device = device
+
+    def __iter__(self):
+        for batch in self.data:
+            yield to_device(batch, self.device)
+
+    def __len__(self):
+        return len(self.data)
+
+def accuracy(predicted, actual):
+    _, predictions = torch.max(predicted, dim=1)
+    return torch.tensor(torch.sum(predictions == actual).item() / len(predictions))
 
 
 class BaseModel(nn.Module):
@@ -208,73 +201,58 @@ class MResnet(BaseModel):
 
 
 
+@torch.no_grad()
+def evaluate(model, test_dl):
+    model.eval()
+    outputs = [model.validation_step(batch) for batch in test_dl]
+    return model.validation_epoch_end(outputs)
 
-# @torch.no_grad()
-# def evaluate(model, test_dl):
-#     model.eval()
-#     outputs = [model.validation_step(batch) for batch in test_dl]
-#     return model.validation_epoch_end(outputs)
-#
-#
-# def get_lr(optimizer):
-#     for param_group in optimizer.param_groups:
-#         return param_group['lr']
-#
-#
-# def fit(epochs, train_dl, test_dl, model, optimizer, max_lr, weight_decay, scheduler, grad_clip=None):
-#     torch.cuda.empty_cache()
-#
-#     history = []
-#
-#     optimizer = optimizer(model.parameters(), max_lr, weight_decay=weight_decay)
-#
-#     scheduler = scheduler(optimizer, max_lr, epochs=epochs, steps_per_epoch=len(train_dl))
-#
-#     for epoch in range(epochs):
-#         model.train()
-#
-#         train_loss = []
-#
-#         lrs = []
-#
-#         for batch in train_dl:
-#             loss = model.training_step(batch)
-#
-#             train_loss.append(loss)
-#
-#             loss.backward()
-#
-#             if grad_clip:
-#                 nn.utils.clip_grad_value_(model.parameters(), grad_clip)
-#
-#             optimizer.step()
-#             optimizer.zero_grad()
-#
-#             scheduler.step()
-#             lrs.append(get_lr(optimizer))
-#         result = evaluate(model, test_dl)
-#         result["train_loss"] = torch.stack(train_loss).mean().item()
-#         result["lrs"] = lrs
-#
-#         model.epoch_end(epoch, result)
-#         history.append(result)
-#
-#     return history
-#
-#
-# history = [evaluate(model,test_dl)]
-# print(history)
-#
-# epochs = 25
-# optimizer = torch.optim.Adam
-# max_lr=0.01
-# grad_clip = 0.1
-# weight_decay = 1e-4
-# scheduler = torch.optim.lr_scheduler.OneCycleLR
-#
-# history += fit(epochs=epochs,train_dl=train_dl,test_dl=test_dl,model=model,optimizer=optimizer,max_lr=max_lr,grad_clip=grad_clip,
-#               weight_decay=weight_decay,scheduler=torch.optim.lr_scheduler.OneCycleLR)
-#
+
+def get_lr(optimizer):
+    for param_group in optimizer.param_groups:
+        return param_group['lr']
+
+
+def fit(epochs, train_dl, test_dl, model, optimizer, max_lr, weight_decay, scheduler, grad_clip=None):
+    torch.cuda.empty_cache()
+
+    history = []
+
+    optimizer = optimizer(model.parameters(), max_lr, weight_decay=weight_decay)
+
+    scheduler = scheduler(optimizer, max_lr, epochs=epochs, steps_per_epoch=len(train_dl))
+
+    for epoch in range(epochs):
+        model.train()
+
+        train_loss = []
+
+        lrs = []
+
+        for batch in train_dl:
+            loss = model.training_step(batch)
+
+            train_loss.append(loss)
+
+            loss.backward()
+
+            if grad_clip:
+                nn.utils.clip_grad_value_(model.parameters(), grad_clip)
+
+            optimizer.step()
+            optimizer.zero_grad()
+
+            scheduler.step()
+            lrs.append(get_lr(optimizer))
+        result = evaluate(model, test_dl)
+        result["train_loss"] = torch.stack(train_loss).mean().item()
+        result["lrs"] = lrs
+
+        model.epoch_end(epoch, result)
+        history.append(result)
+
+    return history
+
 
 def plot_acc(history):
     plt.plot([x["val_acc"] for x in history], "-x")
@@ -294,3 +272,32 @@ def plot_lrs(history):
     plt.plot(np.concatenate([x.get("lrs", []) for x in history]))
     plt.xlabel("Batch number")
     plt.ylabel("Learning rate")
+
+
+if __name__ == '__main__':
+
+    device = get_device()
+    print(device)
+
+    train_dl, test_dl = load_data()
+
+    train_dl = ToDeviceLoader(train_dl,device)
+    test_dl = ToDeviceLoader(test_dl,device)
+
+    model = MResnet(3, 100)
+    model = to_device(model, device)
+
+    history = [evaluate(model, test_dl)]
+    print(history)
+
+    epochs = 0
+    optimizer = torch.optim.Adam
+    max_lr = 0.01
+    grad_clip = 0.1
+    weight_decay = 1e-4
+    scheduler = torch.optim.lr_scheduler.OneCycleLR
+
+    history += fit(epochs=epochs, train_dl=train_dl, test_dl=test_dl, model=model, optimizer=optimizer, max_lr=max_lr,
+                   grad_clip=grad_clip,
+                   weight_decay=weight_decay, scheduler=torch.optim.lr_scheduler.OneCycleLR)
+

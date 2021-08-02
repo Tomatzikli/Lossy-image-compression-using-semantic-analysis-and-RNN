@@ -46,7 +46,7 @@ def save_results(sissim_results, msssim_results, experiments, output_name):
 if __name__ == '__main__':
         sissim_all = []
         msssim_all = []
-        experiments = [4]  # mean k
+        experiments = [12]  # mean k
         for item in experiments:
                 sissim, msssim = test(directory_path='kodak', output_directory_path='kodak_test_results', item = item)
                 print("sissim result: ", sissim)
@@ -55,5 +55,5 @@ if __name__ == '__main__':
                 msssim_all.append(msssim)
 
 
-        output_name = 'trained_semantic_k4'
+        output_name = 'fast_patch32_k12'
         save_results(sissim_all, msssim_all, experiments, output_name)

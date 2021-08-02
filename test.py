@@ -1,7 +1,7 @@
 import numpy as np
 import torch
 from heatmap_process import calc_iterations
-from Semantic_analysis_trained import cam
+from Semantic_analysis import cam
 from RNN import encoder, decoder
 from RNN import metric
 from torchvision import transforms
@@ -25,6 +25,7 @@ def test_image(image_t, output_path, num_batch, item):
     ssim_per_block = decoder.decode(batches , orig_size=(
     image_t.shape[2], image_t.shape[3]),
                                     output_path=output_path)
+    print(ssim_per_block.shape, semantic_level_per_block.shape)
     sissim_vector = ssim_per_block * semantic_level_per_block
     sissim = torch.sum(sissim_vector).item()
     print("si-ssim in batch {}: ".format(num_batch), sissim)

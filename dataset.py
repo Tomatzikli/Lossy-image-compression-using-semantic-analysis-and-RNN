@@ -73,7 +73,8 @@ class ImageFolder(data.Dataset):
 class BatchDivision():
     def __init__(self, image, iterations):
         image = image.squeeze()
-        patches = image.data.unfold(0, 3, 3).unfold(1, 8, 8).unfold(2, 8,8).squeeze()
+        # patches = image.data.unfold(0, 3, 3).unfold(1, 8, 8).unfold(2, 8,8).squeeze()
+        patches = image.data.unfold(0, 3, 3).unfold(1, 32, 32).unfold(2, 32, 32).squeeze()
         patch_by_iters = {}
         location_by_iters = {}
         self.patch_location = []
@@ -113,6 +114,9 @@ class BatchDivision():
                                             transform=transformer_32())
             self.batch_dataset = Patches(batch_patches,
                                          transform=transformer_32())
+        print("leftover shape: ", leftover_patches.shape)
+        print("batch_patches shape: ", batch_patches.shape)
+
         print("batch_dataset size = {} , BATCH_SIZE = {}".format(self.batch_dataset.__len__(), BATCH_SIZE))
         self.batches_data_loader = DataLoader(dataset=self.batch_dataset,
                                               batch_size=BATCH_SIZE,

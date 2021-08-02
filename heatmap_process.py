@@ -41,7 +41,8 @@ def calc_iterations(image_t, path, mean_k = 12):
   # torch.Tensor.unfold(dimension, size, step)
   # slices the images into 8*8 size patches
   image = image.squeeze()
-  heatmap_tiles = image.data.unfold(0, 3, 3).unfold(1, 8, 8).unfold(2, 8, 8).squeeze()
+  # heatmap_tiles = image.data.unfold(0, 3, 3).unfold(1, 8, 8).unfold(2, 8, 8).squeeze()
+  heatmap_tiles = image.data.unfold(0, 3, 3).unfold(1, 32, 32).unfold(2, 32, 32).squeeze()
   num_rows = heatmap_tiles.shape[0]
   num_cols = heatmap_tiles.shape[1]
   n = num_rows * num_cols
@@ -51,8 +52,8 @@ def calc_iterations(image_t, path, mean_k = 12):
     for j in range(num_cols):
       block = heatmap_tiles[i][j]  ## tile.image()
       grey_value = 0
-      for x in range(8):
-        for y in range(8):
+      for x in range(32):  # changed to 32
+        for y in range(32):
           r, g, b = block[0][x][y], block[1][x][y], block[2][x][y]
           grey_value += r * 299.0/1000 + g * 587.0/1000 + b * 114.0/1000
       grey_values.append(grey_value)
