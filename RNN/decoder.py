@@ -7,8 +7,7 @@ from torchvision import transforms
 from RNN.ssim import ssim
 import math
 import RNN.network as network
-from global_vars import BATCH_SIZE
-from global_vars import MAX_ITERATIONS
+from global_vars import BATCH_SIZE, PATCH_SIZE
 
 def resize(image, imsize):
     transformer = []
@@ -23,9 +22,7 @@ def decode(batches, orig_size,
     ssim_per_block = []
     result = torch.tensor([])
     datasets = [batches.batch_dataset, batches.leftover_dataset]
-    # patch_size = 8.0
-    patch_size = 32
-    num_rows, num_cols = orig_size[0] // patch_size, orig_size[1] // patch_size
+    num_rows, num_cols = orig_size[0] // PATCH_SIZE, orig_size[1] // PATCH_SIZE
     with torch.no_grad():
         for patches_dataset in datasets:
             i = 1
@@ -33,9 +30,8 @@ def decode(batches, orig_size,
                 batch_size = BATCH_SIZE
             else:
                 batch_size = 1
-            print("j ", patches_dataset.__len__() // batch_size)
             for j in range(patches_dataset.__len__() // batch_size):
-                print("batch = {} , batch_size = {}".format(j, batch_size))
+                # print("batch = {} , batch_size = {}".format(j, batch_size))
                 content = np.load("patches/batch_{}_{}".format(i, j) + ".npz")  # extract npz file
                 codes = np.unpackbits(content[
                                           'codes'])  # what we saved in the encoder, save as binary numbers.
@@ -94,29 +90,28 @@ def decode(batches, orig_size,
                         decoder_h_4)
                     image = image + output.data.cpu()
 
-                result = torch.cat((result, image.squeeze()), dim=0)
-                print("result size after cat: ", result.shape)
+                result = torch.cat((result, resize(image.squeeze(), (PATCH_SIZE,PATCH_SIZE))), dim=0)
+                # print("result size after cat: ", result.shape)
 
                 # add si-ssim computation per block:
                 for k in range(batch_size):
                     orig_patch = patches_dataset.__getitem__(
                         j * batch_size + k).unsqueeze(0)
                     ssim_per_block.append(ssim(orig_patch, image[k].unsqueeze(0)))
-            i += 1
 
     patch_location = batches.patch_location
 
-    print("result size = {}, locsize ={}".format(result.size(),patch_location.size()))
-    print("1")
+    # print("result size = {}, locsize ={}".format(result.size(),patch_location.size()))
+    # print("1")
     result = result[torch.argsort(patch_location)]
-    print("2")
+    # print("2")
     ssim_per_block = torch.tensor(ssim_per_block)
     ssim_per_block = ssim_per_block[torch.argsort(patch_location)]
-    print("3")
+    # print("3")
 
     # resize to original size in order to apply ssim
     # result = resize(result, orig_size)
-    print("4")
+    # print("4")
 
     # new_image = result.view((num_cols*patch_size, num_rows*patch_size,3))
     new_image = torch.tensor([])
@@ -124,19 +119,19 @@ def decode(batches, orig_size,
         result_cols = torch.tensor([])
         for j in range(num_rows):
             result_cols = torch.cat((result_cols, result[i + num_cols * j]), dim=1)
-        print("result_cols shape ", result_cols.shape)
+        # print("result_cols shape ", result_cols.shape)
         new_image = torch.cat((new_image, result_cols), dim=2)
 
-    print("new_image.shape ",new_image.shape)
+    # print("new_image.shape ",new_image.shape)
 
     new_image = np.squeeze(new_image.numpy().clip(0, 1) * 255.0)
-    print("5")
+    # print("5")
     new_image = new_image.astype(np.uint8).transpose(1, 2, 0)
-    print("6")
+    # print("6")
     # clip: values smaller than 0 become 0, and values larger than 1 become 1
     # from [1, 3, 32, 32] to [32, 32, 3]
     image = Image.fromarray(new_image)
-    print("7")
+    # print("7")
     image.save(output_path)
-    print("8")
+    # print("8")
     return ssim_per_block

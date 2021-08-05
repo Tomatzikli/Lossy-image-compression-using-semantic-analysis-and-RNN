@@ -3,11 +3,12 @@ import torch
 from torchvision import transforms
 import numpy as np
 import math
+from global_vars import PATCH_SIZE
 
 
-def imload_32(path):
+def imload(path):
     img = Image.open(path).convert("RGB")
-    imsize = (32, 32)
+    imsize = (PATCH_SIZE, PATCH_SIZE)
     transformer = []
     transformer.append(transforms.Resize(imsize))
     t1 = transforms.Compose(transformer)
@@ -20,8 +21,8 @@ def imload_32(path):
 def imload_resize_mod8(path):
     img = Image.open(path).convert("RGB")
     #print("orig size: ", img.size[0], ", ", img.size[1])
-    new_size_0 = img.size[0] - img.size[0] % 8
-    new_size_1 = img.size[1] - img.size[1] % 8
+    new_size_0 = img.size[0] - img.size[0] % PATCH_SIZE
+    new_size_1 = img.size[1] - img.size[1] % PATCH_SIZE
     imsize = (new_size_0, new_size_1)
     transformer = []
     transformer.append(transforms.Resize(imsize))
@@ -42,7 +43,7 @@ def calc_iterations(image_t, path, mean_k = 12):
   # slices the images into 8*8 size patches
   image = image.squeeze()
   # heatmap_tiles = image.data.unfold(0, 3, 3).unfold(1, 8, 8).unfold(2, 8, 8).squeeze()
-  heatmap_tiles = image.data.unfold(0, 3, 3).unfold(1, 32, 32).unfold(2, 32, 32).squeeze()
+  heatmap_tiles = image.data.unfold(0, 3, 3).unfold(1, PATCH_SIZE, PATCH_SIZE).unfold(2, PATCH_SIZE, PATCH_SIZE).squeeze()
   num_rows = heatmap_tiles.shape[0]
   num_cols = heatmap_tiles.shape[1]
   n = num_rows * num_cols
@@ -52,8 +53,8 @@ def calc_iterations(image_t, path, mean_k = 12):
     for j in range(num_cols):
       block = heatmap_tiles[i][j]  ## tile.image()
       grey_value = 0
-      for x in range(32):  # changed to 32
-        for y in range(32):
+      for x in range(PATCH_SIZE):  # changed to 32
+        for y in range(PATCH_SIZE):
           r, g, b = block[0][x][y], block[1][x][y], block[2][x][y]
           grey_value += r * 299.0/1000 + g * 587.0/1000 + b * 114.0/1000
       grey_values.append(grey_value)
@@ -88,5 +89,5 @@ def calc_iterations(image_t, path, mean_k = 12):
     # Each tile must be passed at least once
     if iters[i] == 0:
         iters[i] = 1
-  #batches = BatchDivision(heatmap_tiles, iters)
+    iters = np.array(iters).clip(1,24)
   return iters, torch.tensor(semantic_lvls)

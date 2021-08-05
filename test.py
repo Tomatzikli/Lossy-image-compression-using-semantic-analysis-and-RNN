@@ -11,9 +11,6 @@ from torch.utils.data import DataLoader
 from tqdm import tqdm
 from dataset import BatchDivision
 
-BATCH_SIZE = 8
-MAX_ITERATIONS = 24
-
 def test_image(image_t, output_path, num_batch, item):
     cam_output_path = cam.getCam(image_t, gpu=True)
     iterations, semantic_level_per_block = calc_iterations(image_t, cam_output_path,
@@ -25,7 +22,6 @@ def test_image(image_t, output_path, num_batch, item):
     ssim_per_block = decoder.decode(batches , orig_size=(
     image_t.shape[2], image_t.shape[3]),
                                     output_path=output_path)
-    print(ssim_per_block.shape, semantic_level_per_block.shape)
     sissim_vector = ssim_per_block * semantic_level_per_block
     sissim = torch.sum(sissim_vector).item()
     print("si-ssim in batch {}: ".format(num_batch), sissim)
@@ -42,7 +38,7 @@ def test(directory_path, output_directory_path, item):
     test_loader = DataLoader(dataset=test_set, batch_size=1, num_workers=4)
     sissim_list = []
     msssim_list = []
-    cnt = 0
+    result_sizes = []
 
     for batch, data in tqdm(enumerate(test_loader)):
         filename = "kodak_{}_k{}.jpg".format(batch, item)
@@ -51,8 +47,6 @@ def test(directory_path, output_directory_path, item):
         sissim, msssim = test_image(data, output_path, batch, item)
         sissim_list.append(sissim)
         msssim_list.append(msssim)
-        cnt += 1
-        if cnt == 8:
-            break
+        result_sizes.append(os.path.getsize(output_path)//1024)
 
-    return sissim_list, msssim_list
+    return sissim_list, msssim_list, result_sizes

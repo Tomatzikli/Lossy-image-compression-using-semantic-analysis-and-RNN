@@ -8,9 +8,7 @@ from torch.utils.data import DataLoader
 from torchvision import transforms
 import torch.utils.data as data
 from PIL import Image
-from global_vars import BATCH_SIZE
-from global_vars import MAX_ITERATIONS
-import numpy as np
+from global_vars import MAX_ITERATIONS, PATCH_SIZE, BATCH_SIZE
 
 IMG_EXTENSIONS = [
     '.jpg',
@@ -73,8 +71,7 @@ class ImageFolder(data.Dataset):
 class BatchDivision():
     def __init__(self, image, iterations):
         image = image.squeeze()
-        # patches = image.data.unfold(0, 3, 3).unfold(1, 8, 8).unfold(2, 8,8).squeeze()
-        patches = image.data.unfold(0, 3, 3).unfold(1, 32, 32).unfold(2, 32, 32).squeeze()
+        patches = image.data.unfold(0, 3, 3).unfold(1, PATCH_SIZE, PATCH_SIZE).unfold(2, PATCH_SIZE, PATCH_SIZE).squeeze()
         patch_by_iters = {}
         location_by_iters = {}
         self.patch_location = []
@@ -93,7 +90,7 @@ class BatchDivision():
                     patch_by_iters[patch_iters] = torch.tensor([])
                 patch_by_iters[patch_iters] = torch.cat((patch_by_iters[patch_iters], patches[i][j].unsqueeze(0)), dim=0)
                 location_by_iters[patch_iters].append(i * num_cols + j)
-        for i in range(0, MAX_ITERATIONS):
+        for i in range(0, MAX_ITERATIONS+1):
             if i in patch_by_iters:
                 batch_patches = torch.cat((batch_patches, patch_by_iters[i]), dim=0)
                 self.patch_location += location_by_iters[i]
@@ -115,8 +112,6 @@ class BatchDivision():
             self.batch_dataset = Patches(batch_patches,
                                          transform=transformer_32())
         print("leftover shape: ", leftover_patches.shape)
-        print("batch_patches shape: ", batch_patches.shape)
-
         print("batch_dataset size = {} , BATCH_SIZE = {}".format(self.batch_dataset.__len__(), BATCH_SIZE))
         self.batches_data_loader = DataLoader(dataset=self.batch_dataset,
                                               batch_size=BATCH_SIZE,
@@ -132,7 +127,7 @@ class Patches(data.Dataset):
 
     def __init__(self, image, transform=None, loader=default_loader):
         self.patches = image
-        print("{}".format(self.patches.size()))
+        # print("{}".format(self.patches.size()))
         # print("in dataset.py patches.shape ", self.patches.shape)
 
         self.transform = transform

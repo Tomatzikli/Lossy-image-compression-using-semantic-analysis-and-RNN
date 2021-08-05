@@ -112,7 +112,7 @@ def encode(batches, model='checkpoint/encoder_epoch_00000025.pth',
                 res = image - 0.5  # ? why, what
                 iters = 0
                 if i ==1:
-                    #print("batch = {} , batch_size = {}".format(batch, batch_size))
+                    # print("batch = {} , batch_size = {}".format(batch, batch_size))
                     iters = max(batches.batch_iterations[batch*batch_size:(batch+1)*(batch_size)])
                 elif batches.leftover_iterations!= []:
                     iters = batches.leftover_iterations[batch]
