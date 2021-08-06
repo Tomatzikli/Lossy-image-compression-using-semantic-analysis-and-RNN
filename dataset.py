@@ -44,7 +44,7 @@ class ImageFolder(data.Dataset):
 
     def __init__(self, root, transform=None, loader=default_loader):
         images = []
-        for filename in os.listdir(root):
+        for filename in sorted(os.listdir(root)):
             if is_image_file(filename):
                 images.append('{}'.format(filename))
 
