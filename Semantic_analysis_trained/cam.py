@@ -21,7 +21,9 @@ def getCam(image: torch.tensor, network='resnet50', gpu=True, topk=1, blend_alph
 
     # -------------------------------------
     model = MResnet(3, 100).to(device)
-    model.load_state_dict(torch.load("Semantic_analysis_trained/cifar100-resnet.pth"))
+    # model.load_state_dict(torch.load("Semantic_analysis_trained/cifar100-resnet.pth"))
+    ## model with best laerning rate of 8e-05
+    model.load_state_dict(torch.load("Semantic_analysis_trained/cifar100-resnet_wd8e-05.pth"))
     model = model.to(device)
 
     # print(model)
