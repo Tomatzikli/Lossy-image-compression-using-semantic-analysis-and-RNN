@@ -111,8 +111,8 @@ class BatchDivision():
                                             transform=transformer_32())
             self.batch_dataset = Patches(batch_patches,
                                          transform=transformer_32())
-        print("leftover shape: ", leftover_patches.shape)
-        print("batch_dataset size = {} , BATCH_SIZE = {}".format(self.batch_dataset.__len__(), BATCH_SIZE))
+        # print("leftover shape: ", leftover_patches.shape)
+        # print("batch_dataset size = {} , BATCH_SIZE = {}".format(self.batch_dataset.__len__(), BATCH_SIZE))
         self.batches_data_loader = DataLoader(dataset=self.batch_dataset,
                                               batch_size=BATCH_SIZE,
                                               num_workers=4,
@@ -127,15 +127,11 @@ class Patches(data.Dataset):
 
     def __init__(self, image, transform=None, loader=default_loader):
         self.patches = image
-        # print("{}".format(self.patches.size()))
-        # print("in dataset.py patches.shape ", self.patches.shape)
-
         self.transform = transform
         self.loader = loader
 
     def __getitem__(self, index):
         return self.transform(self.patches[index])
-        # return torch.from_numpy(np.expand_dims(np.array(img).astype(np.float32), 0))
 
     def __len__(self):
         return self.patches.shape[0]

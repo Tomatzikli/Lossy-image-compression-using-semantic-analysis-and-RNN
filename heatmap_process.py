@@ -14,35 +14,29 @@ def imload(path):
     t1 = transforms.Compose(transformer)
     image = t1(img)
     return torch.from_numpy(
-        np.expand_dims(np.transpose(np.array(image).astype(np.float32) / 255.0, (2, 0, 1)),
-                       0))  # scale 0 to 1, (2,0,1) is a permutation
+        np.expand_dims(np.transpose(np.array(image).astype(np.float32) / 255.0, (2, 0, 1)), 0))
 
 
 def imload_resize_mod8(path):
     img = Image.open(path).convert("RGB")
-    #print("orig size: ", img.size[0], ", ", img.size[1])
     new_size_0 = img.size[0] - img.size[0] % PATCH_SIZE
     new_size_1 = img.size[1] - img.size[1] % PATCH_SIZE
     imsize = (new_size_0, new_size_1)
     transformer = []
     transformer.append(transforms.Resize(imsize))
     t1 = transforms.Compose(transformer)
-    new_im = t1(img)  # .unsqueeze(0)
+    new_im = t1(img)
     return new_im, new_size_0, new_size_1
-
 
 
 '''
 This function recieves the tiles of the heatmap picture, and the mean number
 of iteration (Mean K, page 7 of article. No baseline value, )
 '''
-def calc_iterations(image_t, path, mean_k = 12):
+def calc_iterations(path, mean_k = 12):
   transt = transforms.ToTensor()
   image = transt(Image.open(path).convert("RGB"))
-  # torch.Tensor.unfold(dimension, size, step)
-  # slices the images into 8*8 size patches
   image = image.squeeze()
-  # heatmap_tiles = image.data.unfold(0, 3, 3).unfold(1, 8, 8).unfold(2, 8, 8).squeeze()
   heatmap_tiles = image.data.unfold(0, 3, 3).unfold(1, PATCH_SIZE, PATCH_SIZE).unfold(2, PATCH_SIZE, PATCH_SIZE).squeeze()
   num_rows = heatmap_tiles.shape[0]
   num_cols = heatmap_tiles.shape[1]
@@ -51,21 +45,20 @@ def calc_iterations(image_t, path, mean_k = 12):
   grey_values = []
   for i in range(num_rows):
     for j in range(num_cols):
-      block = heatmap_tiles[i][j]  ## tile.image()
+      block = heatmap_tiles[i][j]
       grey_value = 0
-      for x in range(PATCH_SIZE):  # changed to 32
+      for x in range(PATCH_SIZE):
         for y in range(PATCH_SIZE):
           r, g, b = block[0][x][y], block[1][x][y], block[2][x][y]
           grey_value += r * 299.0/1000 + g * 587.0/1000 + b * 114.0/1000
       grey_values.append(grey_value)
-  grey_sum = sum(grey_values)  ## grey_values.sum()
+  grey_sum = sum(grey_values)
   # calculating semantic levels (could have just calculated the number of
   # iterations, but decided to stick to the notation in the article)
   semantic_lvls =[]
   for g_val in grey_values:
     semantic_lvls.append(g_val/grey_sum)
   # With semantic levels we can calculate the number of iterations
-  # Maybe the excess is better calculater as mean_k*n - 24*(num of saturated blocks)?
   iters = []
   excess = 0
   for l in semantic_lvls:
