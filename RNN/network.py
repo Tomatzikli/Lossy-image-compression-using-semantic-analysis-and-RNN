@@ -103,36 +103,25 @@ class DecoderCell(nn.Module):
         self.conv2 = nn.Conv2d(
             32, 3, kernel_size=1, stride=1, padding=0, bias=False)
 
-        ###
-        #down size from 32x32 to 8x8
-        ###
 
     def forward(self, input, hidden1, hidden2, hidden3, hidden4):
         x = self.conv1(input)
-        print("conv1 shape ", x.shape)
 
         hidden1 = self.rnn1(x, hidden1)
         x = hidden1[0]
         x = F.pixel_shuffle(x, 2)
-        print("rnn1 shape ", x.shape)
 
         hidden2 = self.rnn2(x, hidden2)
         x = hidden2[0]
         x = F.pixel_shuffle(x, 2)
-        print("rnn2 shape ", x.shape)
-
 
         hidden3 = self.rnn3(x, hidden3)
         x = hidden3[0]
         x = F.pixel_shuffle(x, 2)
-        print("rnn3 shape ", x.shape)
-
 
         hidden4 = self.rnn4(x, hidden4)
         x = hidden4[0]
         x = F.pixel_shuffle(x, 2)
-        print("rnn4 shape ", x.shape)
 
         x = torch.tanh(self.conv2(x)) / 2
-        print("conv2 shape ", x.shape)
         return x, hidden1, hidden2, hidden3, hidden4

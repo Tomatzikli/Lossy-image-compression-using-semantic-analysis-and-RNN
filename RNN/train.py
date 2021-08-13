@@ -1,75 +1,34 @@
-""" 
-train.py
-"""
-
 import time
 import os
 import argparse
-
-import numpy as np
-
 import torch
 import torch.optim as optim
 import torch.optim.lr_scheduler as LS
-import torch.nn as nn
-import torch.nn.functional as F
 from torch.autograd import Variable
 import torch.utils.data as data
 from torchvision import transforms
-import torchvision
 from torchvision.datasets import CIFAR100
 
 parser = argparse.ArgumentParser()
-#parser.add_argument('--batch-size', '-N', type=int, default=32, help='batch size')
 parser.add_argument('--batch-size', '-N', type=int, default=64, help='batch size')
-#parser.add_argument( '--train', '-f', required=True, type=str, help='folder of training images')
 parser.add_argument( '--train', '-f',  type=str, help='folder of training images', default='/content/cifar-10-batches-py')
-
-
-
-parser.add_argument(
-    '--max-epochs', '-e', type=int, default=50, help='max epochs')   # default=200
+parser.add_argument('--max-epochs', '-e', type=int, default=50, help='max epochs')
 parser.add_argument('--lr', type=float, default=0.0005, help='learning rate')
-# parser.add_argument('--cuda', '-g', action='store_true', help='enables cuda')
-parser.add_argument(
-    '--iterations', type=int, default=16, help='unroll iterations')
+parser.add_argument('--iterations', type=int, default=16, help='unroll iterations')
 parser.add_argument('--checkpoint', type=int, help='unroll iterations')
 args = parser.parse_args("")
 
-## load 32x32 patches from images
-#import dataset
 
 train_transform = transforms.Compose([
     transforms.RandomCrop((32, 32)),
     transforms.ToTensor(),
 ])
 
-# stats = ((0.5074,0.4867,0.4411),(0.2011,0.1987,0.2025))
-# train_transform = tt.Compose([
-#     tt.RandomHorizontalFlip(),
-#     tt.RandomCrop(32,padding=4,padding_mode="reflect"),
-#     tt.ToTensor(),
-#     tt.Normalize(*stats)
-# ])
-
-# test_transform = tt.Compose([
-#     tt.ToTensor(),
-#     tt.Normalize(*stats)
-# ])
-
-
-#train_set = dataset.ImageFolder(root=args.train, transform=train_transform)
-#train_set = torchvision.datasets.CIFAR10(root='../data', train=True, download=True, transform=train_transform)
-
 train_set = CIFAR100(download=True,root="./data",transform=train_transform)
-#test_set = CIFAR100(root="./data",train=False,transform=test_transform)
 
 train_loader = data.DataLoader(
-    dataset=train_set, batch_size=args.batch_size, shuffle=True, pin_memory=True, num_workers=4)  # 1?
-#test_dl = DataLoader(dataset=test_set,batch_size=args.batch_size, ,num_workers=4,pin_memory=True)
-
-print('total images: {}; total batches: {}'.format(
-    len(train_set), len(train_loader)))
+    dataset=train_set, batch_size=args.batch_size, shuffle=True, pin_memory=True, num_workers=4)
+print('total images: {}; total batches: {}'.format(len(train_set), len(train_loader)))
 
 ## load networks on GPU
 import network
@@ -128,7 +87,6 @@ def save(index, epoch=True):
 
 
 # resume()
-
 scheduler = LS.MultiStepLR(solver, milestones=[3, 10, 20, 50, 100], gamma=0.5)   # https://www.programmersought.com/article/35594904715/
 
 last_epoch = 0
@@ -142,8 +100,6 @@ for epoch in range(last_epoch + 1, args.max_epochs + 1):
     for batch, data_pair in enumerate(train_loader):
         data = data_pair[0]   # I added#
         batch_t0 = time.time()
-        ##print( "len data: ",len(data), " 0: ", data[0].shape," 1: ", data[1].shape) ### me
-        # conclusion - data[0].size: [32,3,32,32], data[1].size: [32] lables?
 
         ## init lstm state
         encoder_h_1 = (Variable(torch.zeros(data.size(0), 256, 8, 8).cuda()), 
