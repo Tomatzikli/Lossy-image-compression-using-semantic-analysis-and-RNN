@@ -60,12 +60,13 @@ def calc_iterations(path, mean_k = 12):
     semantic_lvls.append(g_val/grey_sum)
   # With semantic levels we can calculate the number of iterations
   iters = []
-  for _ in range(len(semantic_lvls)):
+  for _ in range(n):
     iters.append(MIN_ITERATIONS)
   excess = 0
   i = 0
+  total_iters = mean_k * n - MIN_ITERATIONS * n
   for l in semantic_lvls:
-    iter = math.floor(l*mean_k*n)
+    iter = math.floor(l*total_iters)
     if iter > 24 - MIN_ITERATIONS:
       excess += iter - 24 
       iter = 24
@@ -81,7 +82,7 @@ def calc_iterations(path, mean_k = 12):
     semantic_lvls[i] = grey_values[i]/grey_sum
   # Distribute excess iterations
   for i in range(n):
-    iters[i] += math.floor(semantic_lvls[i]*mean_k*excess)
+    iters[i] += math.floor(semantic_lvls[i]*excess)
     # Each tile must be passed at least once
     if iters[i] == 0:
         iters[i] = 1
