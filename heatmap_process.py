@@ -3,7 +3,7 @@ import torch
 from torchvision import transforms
 import numpy as np
 import math
-from global_vars import PATCH_SIZE
+from global_vars import PATCH_SIZE, MIN_ITERATIONS
 
 
 def imload(path):
@@ -60,13 +60,16 @@ def calc_iterations(path, mean_k = 12):
     semantic_lvls.append(g_val/grey_sum)
   # With semantic levels we can calculate the number of iterations
   iters = []
+  for _ in range(len(semantic_lvls)):
+    iters.append(MIN_ITERATIONS)
   excess = 0
+  i = 0
   for l in semantic_lvls:
     iter = math.floor(l*mean_k*n)
-    if iter > 24:
-      excess += iter - 24
+    if iter > 24 - MIN_ITERATIONS:
+      excess += iter - 24 
       iter = 24
-    iters.append(iter)
+    iters[i] += iter
   # Distribute the excess iterations among the rest of the tiles
   # First calc the new grey_sum, without blocks with 24 iteration.
   for i in range(n):
