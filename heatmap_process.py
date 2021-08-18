@@ -33,7 +33,7 @@ def imload_resize_mod8(path):
 This function recieves the tiles of the heatmap picture, and the mean number
 of iteration (Mean K, page 7 of article. No baseline value, )
 '''
-def calc_iterations(path, mean_k = 12):
+def calc_iterations(path, mean_k=12, k_min=3, k_max=24):
   transt = transforms.ToTensor()
   image = transt(Image.open(path).convert("RGB"))
   image = image.squeeze()
@@ -55,36 +55,25 @@ def calc_iterations(path, mean_k = 12):
   grey_sum = sum(grey_values)
   # calculating semantic levels (could have just calculated the number of
   # iterations, but decided to stick to the notation in the article)
-  semantic_lvls =[]
+  slevel =[]
   for g_val in grey_values:
-    semantic_lvls.append(g_val/grey_sum)
+    slevel.append(g_val/grey_sum)
+  slevel = np.array(slevel)
   # With semantic levels we can calculate the number of iterations
-  iters = []
-  for _ in range(n):
-    iters.append(MIN_ITERATIONS)
-  excess = 0
-  i = 0
-  total_iters = mean_k * n - MIN_ITERATIONS * n
-  for l in semantic_lvls:
-    iter = math.floor(l*total_iters)
-    if iter > 24 - MIN_ITERATIONS:
-      excess += iter - 24 
-      iter = 24
-    iters[i] += iter
-  # Distribute the excess iterations among the rest of the tiles
-  # First calc the new grey_sum, without blocks with 24 iteration.
-  for i in range(n):
-    if iters[i] == 24:
-      grey_sum -= grey_values[i]
-      grey_values[i] = 0
-  # Re-calculate the semantic levels
-  for i in range(n):
-    semantic_lvls[i] = grey_values[i]/grey_sum
-  # Distribute excess iterations
-  for i in range(n):
-    iters[i] += math.floor(semantic_lvls[i]*excess)
-    # Each tile must be passed at least once
-    if iters[i] == 0:
-        iters[i] = 1
-    iters = np.array(iters).clip(1,24)
-  return iters, torch.tensor(semantic_lvls)
+  tot_iterations = n * mean_k
+  iter = np.full_like(slevel, fill_value=k_min)
+  left_iterations = tot_iterations - iter.sum()
+  iter = iter + np.floor(slevel * left_iterations)
+  iter[iter > k_max] = k_max
+  left_iterations = tot_iterations - iter.sum()
+  updated_slevel = slevel * (iter < k_max).astype(int)
+  updated_slevel /= updated_slevel.sum()
+  iter = iter + np.floor(updated_slevel * left_iterations)
+  left_iterations = tot_iterations - iter.sum()
+  for i in range(int(left_iterations)):
+    iter[(iter * (iter < k_max)).argmax()] += 1
+  iter = np.array(iter).clip(1,24)
+  print("mean iters ", sum(iter)/len(iter))
+  return iter, torch.tensor(slevel)
+
+
