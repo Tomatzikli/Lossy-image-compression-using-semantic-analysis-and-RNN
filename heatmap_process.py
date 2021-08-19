@@ -3,7 +3,7 @@ import torch
 from torchvision import transforms
 import numpy as np
 import math
-from global_vars import PATCH_SIZE, MIN_ITERATIONS
+from global_vars import PATCH_SIZE, MIN_ITERATIONS, MAX_ITERATIONS
 
 
 def imload(path):
@@ -32,8 +32,9 @@ def imload_resize_mod8(path):
 '''
 This function recieves the tiles of the heatmap picture, and the mean number
 of iteration (Mean K, page 7 of article. No baseline value, )
+gives each tile num of iterations s.t the mean is mean_k, the minimum is MIN_ITERATIONS, the maximum is MAX_ITERATIONS
 '''
-def calc_iterations(path, mean_k=12, k_min=3, k_max=24):
+def calc_iterations(path, mean_k=12):
   transt = transforms.ToTensor()
   image = transt(Image.open(path).convert("RGB"))
   image = image.squeeze()
@@ -55,25 +56,30 @@ def calc_iterations(path, mean_k=12, k_min=3, k_max=24):
   grey_sum = sum(grey_values)
   # calculating semantic levels (could have just calculated the number of
   # iterations, but decided to stick to the notation in the article)
-  slevel =[]
+  semantic_level = []
   for g_val in grey_values:
-    slevel.append(g_val/grey_sum)
-  slevel = np.array(slevel)
-  # With semantic levels we can calculate the number of iterations
+    semantic_level.append(g_val/grey_sum)
+  semantic_level = np.array(semantic_level)
+  # The total number of iterations we wan't to divide between the patches
   tot_iterations = n * mean_k
-  iter = np.full_like(slevel, fill_value=k_min)
+  # first give all the patches the minimum num of iterations
+  iter = np.full_like(semantic_level, fill_value=MIN_ITERATIONS)
+  # divide the rest of the iterations according to the semantic level
   left_iterations = tot_iterations - iter.sum()
-  iter = iter + np.floor(slevel * left_iterations)
-  iter[iter > k_max] = k_max
+  iter = iter + np.floor(semantic_level * left_iterations)
+  # update the semantic level, divide the excess iterations to the patches with less than max-iterations.
+  iter[iter > MAX_ITERATIONS] = MAX_ITERATIONS
   left_iterations = tot_iterations - iter.sum()
-  updated_slevel = slevel * (iter < k_max).astype(int)
+  updated_slevel = semantic_level * (iter < MAX_ITERATIONS).astype(int)
   updated_slevel /= updated_slevel.sum()
   iter = iter + np.floor(updated_slevel * left_iterations)
   left_iterations = tot_iterations - iter.sum()
+  # divide the excess iteration directly between the patches
+  # prefer those with bigger num of iteration,  thats less than max-iteration.
   for i in range(int(left_iterations)):
-    iter[(iter * (iter < k_max)).argmax()] += 1
-  iter = np.array(iter).clip(1,24)
+    iter[(iter * (iter < MAX_ITERATIONS)).argmax()] += 1
+  iter = np.array(iter).clip(1, MAX_ITERATIONS)
   print("mean iters ", sum(iter)/len(iter))
-  return iter, torch.tensor(slevel)
+  return iter, torch.tensor(semantic_level)
 
 
