@@ -79,6 +79,7 @@ class BatchDivision():
         self.batch_locations = []
         self.batch_iterations = []
         self.leftover_iterations = []
+        self.image_size = image.shape
         leftover_patches = torch.tensor([])
         num_rows = patches.shape[0]
         num_cols = patches.shape[1]

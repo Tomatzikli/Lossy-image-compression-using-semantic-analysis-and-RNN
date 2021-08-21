@@ -19,10 +19,12 @@ def resize(image, imsize):
 def decode(batches,
            orig_size,
            output_path, model='checkpoint/decoder_epoch_00000025.pth',
-           cuda=True):
+           cuda=True,
+           codes_input_path=""):
     ssim_per_block = []   # calc ssim blockwise
     result = torch.tensor([])
     datasets = [batches.batch_dataset, batches.leftover_dataset]
+
     num_rows, num_cols = orig_size[0] // PATCH_SIZE, orig_size[1] // PATCH_SIZE
     with torch.no_grad():
         i = 0
@@ -33,7 +35,11 @@ def decode(batches,
             else:
                 batch_size = 1
             for j in range(patches_dataset.__len__() // batch_size):
-                content = np.load("patches/batch_{}_{}".format(i, j) + ".npz")  # extract npz file
+                if codes_input_path == "":
+                    path = "patches/batch_{}_{}".format(i, j) + ".npz"
+                else:
+                    path = codes_input_path+"/batch_{}_{}".format(i, j) + ".npz"
+                content = np.load(path)  # extract npz file
                 codes = np.unpackbits(content['codes'])  # what we saved in the encoder, save as binary numbers.
                 codes = np.reshape(codes, content['shape']).astype(np.float32) * 2 - 1
                 codes = torch.from_numpy(codes)

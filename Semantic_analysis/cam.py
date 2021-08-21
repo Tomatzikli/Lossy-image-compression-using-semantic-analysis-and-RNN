@@ -1,10 +1,7 @@
 import json
 import torch
-import numpy as np
-
 from Semantic_analysis.utils import imload_tensor, imshow, array_to_cam, blend
 from Semantic_analysis.models import CAM
-
 
 
 def getCam(image: torch.tensor, network='resnet50', gpu=True, topk=1, blend_alpha=0.75,
@@ -14,22 +11,16 @@ def getCam(image: torch.tensor, network='resnet50', gpu=True, topk=1, blend_alph
     idx_to_label = json.load(open('Semantic_analysis/imagenet_class_index.json'))
     idx_to_label = {int(key):value[1] for key, value in idx_to_label.items()}
 
-
     # set device
     device = torch.device('cuda:%d'%gpu if gpu else 'cpu')
     network = CAM(network).to(device)
-    network.eval()  # turn spesific layers off (Dropouts Layers, BatchNorm Layers etc).
-    # The common practice is using torch.no_grad() in pair with model.eval() to turn off gradients computation.
-    # image = imload_8(image).to(device)  # change to divided by 98
-    # image = imload(image, imsize, cropsize).to(device)
+    network.eval()
     image = imload_tensor(image)
     image = image.to(device)
 
     # make class activation map
     with torch.no_grad():
         prob, cls, cam = network(image, topk=topk)
-
-        # tensor to pil image
         img_pil = imshow(image)
         img_pil.save(save_path + "input.jpg")
 

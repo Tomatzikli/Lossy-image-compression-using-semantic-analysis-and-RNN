@@ -1,14 +1,7 @@
 import torch
-import torchvision
-import numpy as np
-import matplotlib.pyplot as plt
 import torch.nn as nn
 import torch.nn.functional as F
-from torchvision.datasets import CIFAR100
-import torchvision.transforms as tt
-from torchvision.utils import make_grid
-from torch.utils.data.dataloader import DataLoader
-from torch.utils.data import random_split,ConcatDataset
+
 
 class CAM(nn.Module):
     def __init__(self, trained_model):
@@ -19,15 +12,12 @@ class CAM(nn.Module):
         feature_map, output = self.network(x)
         prob, args = torch.sort(output, dim=1, descending=True)
 
-        ## top k class probability
         topk_prob = prob.squeeze().tolist()[:topk]
         topk_arg = args.squeeze().tolist()[:topk]
 
         # generage class activation map
         b, c, h, w = feature_map.size()
-        feature_map = feature_map.view(b, c, h * w).transpose(1,
-                                                              2)  # the feature map need to be the same size as self.network.weight
-
+        feature_map = feature_map.view(b, c, h * w).transpose(1,2)
         cam = torch.bmm(feature_map, self.network.fc_weight).transpose(1, 2)
 
         ## normalize to 0 ~ 1

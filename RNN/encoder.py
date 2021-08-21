@@ -5,7 +5,8 @@ from torch.autograd import Variable
 
 def encode(batches,
            model='checkpoint/encoder_epoch_00000025.pth',
-           cuda=True):
+           cuda=True,
+           codes_output_path=""):
     batches_data_loader = batches.batches_data_loader
     leftover_data_loader = batches.leftover_data_loader
     data_loaders = [batches_data_loader, leftover_data_loader]
@@ -96,5 +97,10 @@ def encode(batches,
 
                 codes = (np.stack(codes).astype(np.int8) + 1) // 2
                 export = np.packbits(codes.reshape(-1))
-                np.savez_compressed("patches/batch_{}_{}".format(i, batch), shape=codes.shape, codes=export)
+
+                if codes_output_path == "":
+                    path = "patches/batch_{}_{}".format(i, batch)
+                else:
+                    path = codes_output_path+"/batch_{}_{}".format(i, batch)
+                np.savez_compressed(path, shape=codes.shape, codes=export)
         i += 1

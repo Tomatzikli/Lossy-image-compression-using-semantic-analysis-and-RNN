@@ -34,7 +34,7 @@ This function recieves the tiles of the heatmap picture, and the mean number
 of iteration (Mean K, page 7 of article. No baseline value, )
 gives each tile num of iterations s.t the mean is mean_k, the minimum is MIN_ITERATIONS, the maximum is MAX_ITERATIONS
 '''
-def calc_iterations(path, mean_k=12):
+def calc_iterations(path, mean_k=6):
   transt = transforms.ToTensor()
   image = transt(Image.open(path).convert("RGB"))
   image = image.squeeze()

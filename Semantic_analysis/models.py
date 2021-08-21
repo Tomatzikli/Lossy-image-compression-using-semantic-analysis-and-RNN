@@ -41,8 +41,8 @@ class CAM(nn.Module):
 
         # generage class activation map
         b, c, h, w = feature_map.size()
-        feature_map = feature_map.view(b, c, h * w).transpose(1,
-                                                              2)  # the feature map need to be the same size as self.network.weight
+        feature_map = feature_map.view(b, c, h * w).transpose(1, 2)
+        # the feature map need to be the same size as self.network.weight
 
         cam = torch.bmm(feature_map, self.network.fc_weight).transpose(1, 2)
 
@@ -68,10 +68,8 @@ class ResNet(nn.Module):
         net_list = list(net.children())
 
         self.feature_extractor = nn.Sequential(*net_list[:-2])
-        # -2 is AdaptiveAvgPool2d(output_size=(1, 1)), -1 is Linear(in_features=2048, out_features=1000, bias=True)
         self.fc_layer = net_list[-1]
         self.fc_weight = nn.Parameter(self.fc_layer.weight.t().unsqueeze(0))
-        # print(self.fc_weight.shape)
 
     def forward(self, x):
         feature_map = self.feature_extractor(x)
