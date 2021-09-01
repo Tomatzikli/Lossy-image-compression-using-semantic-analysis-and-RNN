@@ -8,6 +8,8 @@ from dataset import BatchDivision
 import pickle
 from PIL import Image
 import numpy as np
+import bz2
+import _pickle as cPickle
 
 
 parser = argparse.ArgumentParser()
@@ -36,6 +38,6 @@ iterations, semantic_level_per_block = calc_iterations(cam_output_path)
 batches = BatchDivision(image_t, iterations)
 print("size", batches.image_size)
 encoder.encode(batches, codes_output_path=args.codes_output_directory)
-f = open(args.codes_output_directory+'/BatchDivision.pkl', 'wb')
-pickle.dump(batches, file=f)
-f.close()
+path = args.codes_output_directory+'/BatchDivision' + '.pbz2'
+with bz2.BZ2File(path, 'w') as f:
+    cPickle.dump(batches, f)

@@ -2,6 +2,8 @@ import argparse
 from RNN import decoder
 import os
 import pickle
+import bz2
+import _pickle as cPickle
 
 
 parser = argparse.ArgumentParser()
@@ -15,7 +17,9 @@ parser.add_argument(
 
 args = parser.parse_args()
 
-batches = pickle.load(open(args.codes_input_directory+'/BatchDivision.pkl', 'rb'))
+path = args.codes_input_directory+'/BatchDivision' + '.pbz2'
+batches = bz2.BZ2File(path, 'rb')
+batches = cPickle.load(batches)
 output_path = os.path.join(args.output_directory, "result.jpg")
 decoder.decode(batches, orig_size=(batches.image_size[1], batches.image_size[2]),
                output_path=output_path, codes_input_path=args.codes_input_directory)
