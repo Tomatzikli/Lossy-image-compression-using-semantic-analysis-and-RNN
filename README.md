@@ -1,7 +1,7 @@
 # An End-to-End Deep Learning Image Compression Framework Based on Semantic Analysis
 https://doi.org/10.3390/app9173580
 
-# encode.py --input_path kodak/kodim23.png --codes_output_directory compressed_codes --model checkpoint/encoder_epoch_00000025.pth
+encode.py --input_path kodak/kodim23.png --codes_output_directory compressed_codes --model checkpoint/encoder_epoch_00000025.pth
 This will output binary codes saved in .npz format and a zipped pickle.
 
 decode.py --codes_input_directory compressed_codes --output_directory compressed_output  --model checkpoint/encoder_epoch_00000025.pth
