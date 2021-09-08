@@ -10,7 +10,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument(
     '--codes_input_directory', '-i', type=str, help='input image directory', default='compressed_codes')
 parser.add_argument(
-    '--output_directory', '-o', type=str, help='output codes', default='compressed_output')
+        '--output_directory', '-o', type=str, help='output codes', default='compressed_output')
 parser.add_argument('--cuda', '-g', help='enables cuda', default=True)
 parser.add_argument(
     '--model', '-m', type=str, help='path to model', default='checkpoint/encoder_epoch_00000025.pth')

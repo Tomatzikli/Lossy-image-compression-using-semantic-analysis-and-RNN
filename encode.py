@@ -14,7 +14,7 @@ import _pickle as cPickle
 
 parser = argparse.ArgumentParser()
 parser.add_argument(
-    '--input_path', '-i', required=True, type=str, help='input image directory')
+    '--input_path', '-i', required=True, type=str, help='input image')
 parser.add_argument(
     '--codes_output_directory', '-o', type=str, help='output codes', default='compressed_codes')
 parser.add_argument('--cuda', '-g', help='enables cuda', default=True)
